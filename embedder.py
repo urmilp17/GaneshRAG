@@ -1,10 +1,9 @@
-from langchain_core.embeddings import Embeddings
 from sentence_transformers import SentenceTransformer
 import numpy as np
 from typing import List, Optional, Dict, Any
 from tqdm import tqdm
 
-class SentenceTransformerEmbeddings(Embeddings):
+class SentenceTransformerEmbeddings():
     """
     A class to handle embeddings using Sentence Transformers.
     """
