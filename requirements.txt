@@ -75,3 +75,5 @@ urllib3==2.6.3
 wcwidth==0.8.1
 websockets==16.0
 widgetsnbextension==4.0.15
+sentence-transformers
+scikit-learn
