@@ -4,8 +4,6 @@ import dotenv
 from augmentation import Augmentation
 from embedder import SentenceTransformerEmbeddings
 from langchain_astradb import AstraDBVectorStore
-from google.cloud import firestore
-import uuid
 import os
 import dotenv
 
