@@ -32,162 +32,232 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS with proper dark mode support and saffron theme
+# Custom CSS with Streamlit theme-aware styling
 st.markdown("""
-    <style>
-    /* Saffron color variables */
-    :root {
-        --saffron: #FF7722;
-        --saffron-light: #FF8F3F;
-        --saffron-dark: #E65A00;
-        --saffron-glow: rgba(255, 119, 34, 0.2);
-    }
-    
-    /* Main header */
-    .main-header {
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: var(--saffron) !important;
-        margin-bottom: 1rem;
-        text-shadow: 0 2px 10px var(--saffron-glow);
-    }
-    
-    /* Answer box with saffron theme */
-    .answer-box {
-        background-color: var(--saffron-glow) !important;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border-left: 5px solid #FF7722 !important;
-        margin: 1rem 0;
-        color: inherit !important;
-    }
-    
-    /* Model info box */
-    .model-info {
-        background-color: var(--saffron-glow) !important;
-        padding: 0.8rem;
-        border-radius: 8px;
-        margin-top: 0.5rem;
-        border: 1px solid rgba(255, 119, 34, 0.3) !important;
-        color: inherit !important;
-    }
-    
-    /* Context boxes */
-    .context-box {
-        background-color: var(--saffron-glow) !important;
-        padding: 1rem;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 119, 34, 0.2) !important;
-        margin: 0.5rem 0;
-        font-family: monospace;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-        color: inherit !important;
-    }
-    
-    .context-item {
-        background-color: var(--saffron-glow) !important;
-        padding: 0.8rem;
-        border-radius: 6px;
-        border-left: 3px solid #FF7722 !important;
-        margin: 0.5rem 0;
-        color: inherit !important;
-    }
-    
-    /* Input field styling */
-    .stTextInput > div > div > input {
-        font-size: 1.1rem;
-        border-color: #FF7722 !important;
-    }
-    .stTextInput > div > div > input:focus {
-        border-color: #FF7722 !important;
-        box-shadow: 0 0 0 2px rgba(255, 119, 34, 0.3) !important;
-    }
-    
-    /* Button styling */
-    .stButton button {
-        background-color: #FF7722 !important;
-        color: white !important;
-        border: none !important;
-        transition: all 0.3s ease !important;
-    }
-    .stButton button:hover {
-        background-color: #E65A00 !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 12px rgba(255, 119, 34, 0.4) !important;
-    }
-    .stButton button:active {
-        transform: translateY(0px) !important;
-    }
-    
-    /* Dark mode support */
-    @media (prefers-color-scheme: dark) {
-        .answer-box {
-            background-color: rgba(255, 119, 34, 0.15) !important;
-            border-left-color: #FF7722 !important;
-        }
-        .model-info {
-            background-color: rgba(255, 119, 34, 0.12) !important;
-        }
-        .context-box {
-            background-color: rgba(255, 119, 34, 0.08) !important;
-            border-color: rgba(255, 119, 34, 0.3) !important;
-        }
-        .context-item {
-            background-color: rgba(255, 119, 34, 0.1) !important;
-        }
-    }
-    
-    /* Light mode specific */
-    @media (prefers-color-scheme: light) {
-        .answer-box {
-            background-color: #FFF5EE !important;
-        }
-        .model-info {
-            background-color: #FFF5EE !important;
-        }
-        .context-box {
-            background-color: #FFFBF7 !important;
-        }
-        .context-item {
-            background-color: #FFF5EE !important;
-        }
-    }
-    
-    /* Streamlit native dark mode support */
-    [data-theme="dark"] .answer-box {
-        background-color: rgba(255, 119, 34, 0.12) !important;
-    }
-    [data-theme="dark"] .model-info {
-        background-color: rgba(255, 119, 34, 0.1) !important;
-    }
-    [data-theme="dark"] .context-box {
-        background-color: rgba(255, 119, 34, 0.08) !important;
-        border-color: rgba(255, 119, 34, 0.25) !important;
-    }
-    [data-theme="dark"] .context-item {
-        background-color: rgba(255, 119, 34, 0.1) !important;
-    }
-    
-    /* Saffron colored dividers */
-    hr {
-        border-color: rgba(255, 119, 34, 0.3) !important;
-    }
-    
-    /* Saffron colored expander headers */
-    .streamlit-expanderHeader {
-        color: #FF7722 !important;
-        font-weight: 600 !important;
-    }
-    
-    /* Success messages in saffron */
-    .stAlert {
-        border-left-color: #FF7722 !important;
-    }
-    .stAlert svg {
-        fill: #FF7722 !important;
-    }
-    </style>
+<style>
+
+:root {
+    --saffron: #FF7722;
+    --saffron-light: #FF8F3F;
+    --saffron-dark: #E65A00;
+    --saffron-glow: rgba(255, 119, 34, 0.18);
+}
+
+/* ==============================
+   Main Header
+   ============================== */
+
+.main-header {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--saffron) !important;
+    margin-bottom: 1rem;
+    text-shadow: 0 2px 10px rgba(255, 119, 34, 0.2);
+}
+
+
+/* ==============================
+   ANSWER BOX
+   ============================== */
+
+.answer-box {
+    background-color: var(--secondary-background-color) !important;
+
+    color: var(--text-color) !important;
+
+    padding: 1.5rem;
+
+    border-radius: 10px;
+
+    border-left: 5px solid var(--saffron) !important;
+
+    margin: 1rem 0;
+
+    line-height: 1.7;
+
+    font-size: 1rem;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+
+/* Make everything inside answer box readable */
+
+.answer-box,
+.answer-box p,
+.answer-box span,
+.answer-box div,
+.answer-box li,
+.answer-box ul,
+.answer-box ol,
+.answer-box strong,
+.answer-box em {
+    color: var(--text-color) !important;
+}
+
+
+/* Headings inside answer */
+
+.answer-box h1,
+.answer-box h2,
+.answer-box h3,
+.answer-box h4 {
+    color: var(--saffron) !important;
+}
+
+
+/* Links */
+
+.answer-box a {
+    color: var(--saffron) !important;
+}
+
+
+/* ==============================
+   MODEL INFO
+   ============================== */
+
+.model-info {
+    background-color: var(--secondary-background-color) !important;
+
+    color: var(--text-color) !important;
+
+    padding: 0.8rem;
+
+    border-radius: 8px;
+
+    margin-top: 0.5rem;
+
+    border: 1px solid rgba(255, 119, 34, 0.35) !important;
+}
+
+
+/* ==============================
+   CONTEXT BOX
+   ============================== */
+
+.context-box {
+    background-color: var(--secondary-background-color) !important;
+
+    color: var(--text-color) !important;
+
+    padding: 1rem;
+
+    border-radius: 8px;
+
+    border: 1px solid rgba(255, 119, 34, 0.25) !important;
+
+    margin: 0.5rem 0;
+
+    font-family: monospace;
+
+    white-space: pre-wrap;
+
+    word-wrap: break-word;
+
+    line-height: 1.6;
+}
+
+
+/* ==============================
+   CONTEXT ITEM
+   ============================== */
+
+.context-item {
+    background-color: var(--secondary-background-color) !important;
+
+    color: var(--text-color) !important;
+
+    padding: 0.8rem;
+
+    border-radius: 6px;
+
+    border-left: 3px solid var(--saffron) !important;
+
+    margin: 0.5rem 0;
+}
+
+
+/* ==============================
+   TEXT INPUT
+   ============================== */
+
+.stTextInput > div > div > input {
+    font-size: 1.1rem;
+
+    border-color: var(--saffron) !important;
+}
+
+
+.stTextInput > div > div > input:focus {
+    border-color: var(--saffron) !important;
+
+    box-shadow: 0 0 0 2px rgba(255, 119, 34, 0.3) !important;
+}
+
+
+/* ==============================
+   SEARCH BUTTON
+   ============================== */
+
+.stButton button {
+    background-color: var(--saffron) !important;
+
+    color: white !important;
+
+    border: none !important;
+
+    transition: all 0.3s ease !important;
+}
+
+
+.stButton button:hover {
+    background-color: var(--saffron-dark) !important;
+
+    transform: translateY(-2px) !important;
+
+    box-shadow: 0 4px 12px rgba(255, 119, 34, 0.4) !important;
+}
+
+
+.stButton button:active {
+    transform: translateY(0px) !important;
+}
+
+
+/* ==============================
+   EXPANDERS
+   ============================== */
+
+.streamlit-expanderHeader {
+    color: var(--saffron) !important;
+
+    font-weight: 600 !important;
+}
+
+
+/* ==============================
+   DIVIDERS
+   ============================== */
+
+hr {
+    border-color: rgba(255, 119, 34, 0.3) !important;
+}
+
+
+/* ==============================
+   ALERTS
+   ============================== */
+
+.stAlert {
+    border-left-color: var(--saffron) !important;
+}
+
+.stAlert svg {
+    fill: var(--saffron) !important;
+}
+
+</style>
 """, unsafe_allow_html=True)
 
 # Title and description with saffron accent
@@ -326,7 +396,18 @@ if (search_button or query) and query.strip():
                 st.divider()
                 
                 st.subheader("📝 Answer")
-                st.markdown(f'<div class="answer-box">{result["answer"]}</div>', unsafe_allow_html=True)
+                answer = result.get("answer", "No answer generated.")
+
+                st.markdown(
+                    f"""
+                    <div class="answer-box">
+                        <div class="answer-content">
+                            {answer}
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
                 
                 if "model" in result:
                     st.markdown(f'<div class="model-info">🤖 <b>Model used:</b> {result["model"]}</div>', unsafe_allow_html=True)
