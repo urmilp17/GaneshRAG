@@ -17,7 +17,7 @@ embedder = SentenceTransformerEmbeddings(
     
     # Initialize vector store
 vector_store = AstraDBVectorStore(
-    collection_name="documents",
+    collection_name="puranas",
     embedding=embedder,
     token=os.getenv("ASTRA_DB_APPLICATION_TOKEN"),
     api_endpoint=os.getenv("ASTRA_DB_API_ENDPOINT"),
