@@ -1,0 +1,555 @@
+--- Page 1 ---
+“Vatapi Ganapatim”: Sculptural, Poetic,
+and Musical Texts in a Hymn to Ganega
+_ Amy Catlin
+Introduction
+Te spirited musical paean to GaneSa by the revered nineteenth-cen-
+tury “‘trinity’’' composer Muttuswami Diksitar is easily the most well
+known of all classical South Indian, or karnatak, compositions. A signifi-
+cant percentage of the thousands of formal concerts in Madras each year
+open with the “inevitable Vatapi.”? Indeed, hardly a single procession of
+blaring nagasvaram oboes and penetrating tavil drums passes by without
+its raucous rendition of the Sanskrit kritt, a classical pre-composed song
+form that evolved from the more popular group song forms, the kirtan and *-
+bhajan. Students of karnatak music learn this song in the early weeks of
+study, and its fame has continuously increased for nearly two hundred
+years: the ragam and the kernel of the composition have even spread to
+North India.
+
+Several factors contribute to its great popularity. It praises the ele-
+phant-headed god of beginnings, who is a favorite of many Hindus; it is set
+in an auspicious, novel, and relatively simple but melodious ragam, or
+musical mode; and perhaps most of all, the bright and jaunty melody of the
+composition itself captures the playful quality of Ganesa’s personality.
+
+Yet, far moreso than in Western music, every performance of ‘’Vatapi
+Ganapatim” is different, due to the importance of improvisation in karna-
+tak music. Thus the roles of permanence, variability, and change are cen-
+tral to understanding the work. How, then, can we describe the range of
+variability in the different texts and performances of the work? And which
+elements of synchronic variation have produced diachronic changes in the
+piece, based upon the written, oral, and recorded sources available to us?
+
+141
+
+--- Page 2 ---
+1442.) Amy Catlin |
+
+In answering these questions, we will posit three distinct structural
+levels in the composition, each allowing different degrees of variability and
+change. The first, the core level, is a deep structure of tune and text and is
+the most stable; the second, middle level allows moderate variation; and
+the third, or surface, level supports and seems to demand a high degree of
+individual variation, sometimes resulting in diachronic change.
+
+To establish these levels, we will examine here the poetic texts, mus-
+ical texts, and descriptions of early performances of the piece, as well as
+recordings and contemporary performances. But first, we must turn to the
+sculptural ‘‘text,”” the stone image known as the “’Vatapi Ganapati” that is
+thought to have inspired Diksitar.
+
+Sculptural ‘Texts’: The Two Vatapi Ganapatis
+
+Muttuswami Diksitar often organized his Sanskrit compositions into
+sets around a single theme (e.g., the nine planets), sometimes focusing on
+a particular deity of a temple (e.g., Mayavaram Abhayamba). One unique
+
+_ set, the ‘‘Sodasa Ganapati Kritis,’”’ is dedicated to the sixteen Ganapati
+statues found in and around the enormous temple in his birthplace, Tiru-
+varur. These included the Maha Ganapati and the Panca Matanga Mukha_ ©
+Ganapati, as well as the so-called Vatapi Ganapati, which the present pa-
+per addresses. The tradition associated with this particular statue is still
+active in Tiruvarur today, and one version has been related in the historical
+novel Sivakamiyin Sapatam (The Vow of Sivakami) by R. Krishnamurthy, the
+renowned Tamil writer best known by his pen name, “Kalki.”
+
+Vatapi (the name is a corrupt form of the place-name Badami) is lo-
+cated in the present Bijapur District. After the Pallavas under Narasimha-
+varma | (630-68) conquered Badami, tradition holds that an image of
+Ganapati was brought as booty from there to the Tanjore town of Tiruccen-
+gattangudi. This was the home of the Pallava general Paranjyoti, a Tami-
+lian who later changed his name to Ciruttonda and became a Saivite saint.‘
+
+The oral traditions associated with the image are questionable even
+from the start, however, as there is no Ganapati listed among Paranjyoti/
+Ciruttonda’s other war trophies.* According to Meister, the Ganesa was
+later installed in a secondary shrine, where it now remains on the south
+wall of the ardhamandapa (fig. 1). It is located in the precincts of a larger
+temple that was formerly known as the Ciruttonda Ganapatisvara. Meis-
+ter considers this to be a rebuilding dating from about 988 A.D.
+
+At some later date, the idol evidently served as an inspiration for an-
+other Ganapati in the Tiruvarur temple (fig. 2). There it is also called “’Va-
+
+--- Page 3 ---
+“Vatapi Ganapatim’ 143
+tapi Ganapati,” although it lacks any significant similarity to the earlier im- -
+age. This ‘‘copy” is the statue that Diksitar’s song addresses, one of the
+many subsidiary deities of the temple. Both idols are still being worshiped.
+
+Photos of these images have not previously been published, al-
+though one drawing of the Tiruvartr idol appeared in 1946. This sketch,
+by the artist Chandrasekharan, was used for the cover of the weekly Tamil
+literary magazine, Kalki. It was commissioned by the journal’s editor, R.
+Krishnamurthy, for the 23 June 1946 issue, containing his own article ‘’Va-
+tapi Ganapati.’”°
+
+Robert L. Brown contributes this commentary on the two images:
+
+The Vatapi Ganapati [fig. 1] is still in worship at the Ganapatisvara
+temple in Tiruccengattangudi. That it is a seventh-century Chalukyan im-
+age, the one brought back by Ciruttonda from Badami, appears, however,
+unlikely. Judging from the photograph, the image fits best stylistically with
+tenth - eleventh century Chola representations of Ganesa. Typical of Chola
+
+s images is the enormous body with the belly resting directly on the support
+and with the spindly legs and arms. The lower arms are held next to the body
+and the hands are clenched with the large fingers clearly delineated. Very
+characteristic of Chola-period GaneSas is the long, thin trunk that curls
+against the body and holdsa single round modaka (the om-shaped trunk men-
+tioned in the song).”? Few seventh-century Chalukyan Ganesas have been
+
+identified, so it is difficult to compare the Vatapi Ganapati with images sim-
+
+ilar to ones we might suspect relate most closely to that brought from Bad-
+ami. As far as Iam aware, no three-dimensional examples exist today from
+Badami. One seventh-century example from another Chalukyan site, Alam-
+pur, shows little relationship to the Vatapi Ganapati.* We might speculate
+that when the Ganapatisvara temple was rebuilt at the end of the tenth cen-
+tury (ca. A.D. 988),? a Chola Ganapati statue of about this date was installed
+and called the Vatapi Ganapati.
+
+The copy from Tiruvarur [fig. 2] is even further stylistically from the
+supposed Chalukyan prototype, and also has little relationship to the Tiruc-
+cengattangudi image. It is difficult to draw very precise conclusions from the
+photograph, but because of such characteristics as the folded-legs posture
+(virdsana) and the depiction of the image in relief within the leaf-shaped
+stele, a date as late as the seventeenth—eighteenth century is possible. What-
+ever its date, we can say that the Tiruvarur Ganapati is only very distantly a
+copy of a Chalukyan prototype, and that the Tiruccengattangudi Ganapati
+appears likewise to be a ‘copy’ of the proposed image brought from Badami
+by Ciruttonda.
+
+--- Page 4 ---
+144 Amy Catlin
+
+Meister’s date of 988 for the rebuilding of the temple could thus be
+associated with the installation of a new, Chola Ganapati. Dr. F. L’Her-
+nault has similarly identified the Tiruccengattangudi idol as Chola. Her
+observations are that the four hands, in clockwise order, hold the pasa
+(noose, upper night), modaka (sweet), pustaka (manuscript), and ankusa
+(goad). It is located in the subshrine of the southwest corner of the yard of
+the Siva temple, a normal location for a subshrine dedicated to Ganapati.
+Its height is 61 cm. L’Hernault cites the Tiruvarur Ganapati as holding the
+manuscript pustaka (upper right hand), the second hand resting on the
+hip, the third not clearly holding anything, and the fourth, holding a veg-
+etable. It is located in the gallery of the inner enclosure, also in the south-
+west corner (see fig. 3). Walls have been erected between two pillars of the
+gallery to form a small shrine.’
+
+In any case, both figures resemble the Taruna GaneSa type described
+by V. Ramasubramaniam. A noteworthy feature of the later icon, however,
+is the rare right-curving trunk, called Valamburi Ganesa (Tamil: valamburi,
+turning toward the right). Specimens have been noted in Mysore, at Val-
+lam Village in Tanjore, and at Karuppathur on the Cauvery."!
+
+Thus, the sculptural ‘‘text’’ for Diksitar’s composition is actually a
+complex of history, oral tradition, and sculptural variations on the icono-
+graphic theme of Ganapati. We will now see how the poetic text of the song
+relates to these antecedents.
+
+Poetic Texts
+
+The Vatapi Ganapati is praised by only one poet-singer, the Smarta
+Brahmin Muttuswami Diksitar. Diksitar is the author of more kritis in San-
+skrit than any other karnatak composer, and his skill in the language is of-
+ten praised. Frequently his songs are grouped, as in the sets of nine kritis
+to the nine planets, five to the five lingas, and in this case, one to each of
+the sixteen Ganapatis at Tiruvarur. Like many of his Ganapati composi-
+tions, this song is a doxology of attributes of the god and the icon ad-
+dressed. The choice of GaneSa as a subject complies with the great popu-
+larity of the deity, who must be invoked by Hindus before worshiping any
+deity or undertaking any important task. Ganesa’s association with song
+is revealed in no less than 140 epithets linking him to music and speech;
+one scholar has even cited the epithet “Ganapati” or “lord of song.””? Only
+two of the more than one hundred iconographical forms of Ganapati, how-
+ever, show a vind in one of his hands.
+
+The following is a transliteration, with literal and paraphrased En-
+glish translations of the Sanskrit text, based on the published Telugu and
+Tamil script versions, said to be taken originally from Diksitar’s grantha (a
+
+--- Page 5 ---
+150 Amy Catlin
+
+Tamil script designed for writing Sanskrit) manuscript, which is no longer
+extant. It was prepared with the help of T. S. Parthasarathy, Sanskrit
+scholar and Secretary of the Madras Music Academy, and Hartmut
+Scharfe, Sanskritist and Professor of Linguistics, UCLA. They did not al-
+ways concur, as the published versions are not without flaws; any errors
+resulting are mine alone.
+
+Like most kritis, the song is in three sections, called Pallavi, Anupal-
+lavi, and Caranam (theme, aftertheme, and verse). When sung, the first
+line recurs as a refrain after each section, all the other lines functioning as
+compound adjectives modifying the noun of the first line, Ganapati. These
+characteristics and attributes do not describe a complete Ganapati, but
+rather they present selected physical and metaphysical qualities of the de-
+ity. Some of these attributes bear explanation here. He is called “devoid of
+passion,” vitaraginam in line 3 of the Anupallavi, as the South Indian Ga-
+
+| ne§a is typically a bachelor. The “pot-born sage’”’ of line 1 of the Caranam
+| refers to the sage Agastya, who was born of a water pot. Later Agastya car-
+ried a pot to Siva for holy water during a drought, which Ganeéa spilled at
+Indra’s request, and then restored in order to fulfill Agastya’s wish.
+Hence, Agastya became a follower of Ganega.'? Following Tantric symbol-
+ism, Ganapati is believed to reside in the figure of a triangle (Caranam, line
+2) and in the muladhdra cakra of the human body, at the perineum; this is
+also a name of a shrine in Tiruvarur and perhaps a reference to the trian-
+gular stele surrounding the image (Caranam, line 4). His om-shaped trunk
+is a reference to the curling line of the Sanskrit letter; the crescent moon
+comes from his father, Siva; the noose symbolizes control of the bonds of
+samsara, the restraint of passion."4 Finally, two mudras or signatures occur
+in the final two lines of the text. One is for the composer, guru being Dik-
+sitar’s mudra; the other is the name of the ragam, Harnsadhvani, which is
+gracefully woven into the final line of the Caranam.
+Musical Texts I: The Ragam
+
+The name Hamsadhvani, the ragam or musical mode Diksitar chose
+for his song, is usually translated as “The Voice of the Swan,” although the
+hamsa is strictly speaking a ruddy goose, whose voice is traditionally be-
+lieved to have a sacred character. Sarasvati, the patroness of music, poetry,
+and learning, rides either the hamsa or a peacock. Since ancient times, the
+term hamsa has been used for poetic meters, as well as for one of the deva-
+gandharvas.'° Thus, the hamsa was associated with the arts of music and
+poetry long before the ragam was created about two hundred years ago.
+
+--- Page 6 ---
+“Vatapi Ganapatim’ 151
+
+The ragam is said to have been created by the composer's own father,
+Ramaswami Diksitar (1735-1817), first appearing in 1790 in the Sarngraha
+Cudamani, a cadjan-leaf manuscript by Govinda.'¢ Ramaswami’s two com-
+positions in Harhsadhvani are a varnam and a laksya prabandha (composi-
+tion that explains a ragam) that describe the various features of the new ra-
+gam in a text praising the Siva Nataraja (Lord of the Dance) idol at
+Chidambaram."
+
+The composition sounds unusually accessible to Western listeners to
+whom karnatak music often seems foreign and incomprehensible. This
+may be in part due to the rhythmic underlay of the text, which stresses a
+lively emphasis of beats 1, 4, and 7 in an eight-beat cycle. Accenting the
+normally weak beats 4 and 7 creates a sense of syncopation, as in the “3 +
+3 + 2” rhythm often found in Indian music.
+
+Furthermore, the radgam is very compatible with Western tonality.
+The five tones of Hamsadhvani— C, D, E, G, and B — occur in the
+Sankarabharana meld, which is roughly equivalent to our Western major
+scale. These five notes also comprise our tonic and dominant triads, the
+two fundamental chords in Western music. Western influence may indeed
+be at the root of this feature. Ramaswami Diksitar listened to considerable
+amounts of English band music while he was under the patronage of the
+zamindar Venkatakrsna Mudaliar of Manali, whose father had been a du-
+bhas (bilingual, i.e., a translating agent) for Governor Pigot and the East
+India Company. While in the Mudaliar circles, Ramaswami became so in-
+terested in English music that he asked his first son, Muttuswami, to com-
+pose Sanskrit devotional texts for at least thirty-three English band tunes,
+among them ‘’God Save the Queen.” His third son, Balaswami, learned to
+play the violin. Given these enthusiasms, it is not farfetched to suppose
+that his ragam Harmsadhvani might have been influenced by English mu-
+sic. The influence, however, would have been limited to elements compat-
+ible with Indian musical sensibilities. |
+
+Although Ramaswami's other two sons were also composers, Mut-
+tuswami was the only one to compose in this ragam, and the kriti ‘’Vatapi"
+was his only composition in Harnsadhvani. He otherwise preferred the
+more traditional —and usually more complex — karnatak ragams. Saint Ty-
+agaraja learned of the ragam, probably from Govinda’s work, and com-
+posed his still-popular ‘““Raghunayaka Ni Padayuga”’ in Hamsadhvani.
+Other karnatak composers since have employed the ragam, and even Hin-
+dusthani musicians have composed khyal in it.!® Today’s Hindusthani mu-
+sicians continue to play Harhnsadhvani; in December 1988 alone, no fewer
+than three concerts of Hindusthani classical music reviewed in the na-
+
+--- Page 7 ---
+152 Amy Catlin
+tional newspapers included Harnsadhvani. It is even something of a spe-
+cialty of the sitar maestro, Ustad Imrat Khan.
+
+According to the Tantric school of thought to which Diksitar be-
+longed, the seven musical notes are given symbolic associations. Shadja,
+the note sd, or the fundamental pitch, is said to be born of the muladhara
+cakra, a center of energy located in the perineum, and over which Ganapati
+presides. This cakra in turn symbolizes the prithvi tattva, whose bija or seed
+is gandharva, the note ga, or the third degree of the mode, and whose con-
+sonant note a fifth above is nishada, the note ni. Nishada is believed to have
+as its corresponding sound in nature the sound of the elephant, another
+link to Ganapati. Taking the initial consonants of the two notes ga and ni
+(without the retroflex position in the latter), we have the initial consonants
+of the first two syllables of Ganapati or Ganesa.'’ Since the three notes, sd,
+ga, and ni, belong to Harnsadhvani, the others being pa, the fifth degree,
+and its fifth, ri, the second degree, Muttuswami Diksitar may well have
+had Tantric reasons for selecting Harmsadhvani for worshiping Lord Ga-
+neSa.
+
+He might also have been attracted by the unique leaping contours of
+the ragam, which somehow capture the jovial nature of Ganesa. These
+gaps, especially the one emphasized in the composition between the lower
+pa and the middle ri, help create the image of a dancing, leaping Ganapati,
+
+_ and give the musician scope to make sweeping ascents into the upper reg-
+isters. While these observations are subjective and cannot be proven, it
+seems likely that one reason for the charm and success of the composition
+and ragam are their suitability for conjuring up the image of a very much
+enlivened Ganapati.
+
+Musical Texts II: The Composition
+
+According to tradition, Diksitar wrote down his texts and composi-
+tions as he composed them, laboring like a true scholar of Sanskrit and mu-
+sic, and unlike some other composers who spontaneously composed
+while singing. Unfortunately, none of his autograph manuscripts are ex-
+tant. Nevertheless, countless Diksitar compositions are still performed to-
+day, transmitted through his descendents and eleven important students.
+Diksitar’s youngest brother, Balaswami, had a daughter whose son Sub-
+barama he adopted.” Subbarama (1839 — 1906) learned his great-uncle’s
+compositions from his grandfather and guardian, Balaswami. Upon the
+urging of Cinnaswami Mudaliar, a remarkable publisher of hundreds of
+karnatak pieces in Western notation, and Diksitar’s patron the Rajah of Et-
+tay::puram, Ventakeswara Eddappa III, Subbarama published the pieces
+
+— he tad Jearned, including both texts and svara (syllabic) musical notations
+
+--- Page 8 ---
+“Vatapi Ganapatim” 153
+in Telugu script in the volume Sangita Sampraddya Pradarsini in 1904. The
+English preface to the volume describes his initial reluctance to publicize
+the tamily tradition:
+
+Sri Subbarama Diksitar, though unwilling at first to part with what he natu-
+
+rally regarded as a precious heirloom to be jealously guarded and retained
+
+in his family, yielded in the end to the wishes of his master and patron, the
+
+Rajah.?!
+
+It was evidently the jajmani relationship between the royal and musical
+families that gave weight to the argument for publication, as well as the
+choice of the Telugu script, as the patrons were Telugus, whereas the mu-
+sicians were Tamils.
+
+The Sangita Sampradaya Pradarsini of 1904 is a treasure of seventeen
+hundred pages, containing seventy-four musical biographies and assorted
+essays On various musical subjects, as well as detailed notations and texts
+for 229 kritis of Muttuswami Diksitar, and hundreds of other pieces by
+other composers. A new set of Telugu type was created for the project,
+which was one of the early printing ventures in the South, including spe-
+cial type for the musical ornament signs devised by the author. The follow-
+ing examples (figs. 4 and 5) show the title page of the work, the ““Vatapi”
+composition as it appears therein,” and a Western staff transnotation of
+the composition, with Roman transliteration of the text to show underlay
+with the melody.
+
+With sponsorship from the national Sangeet Natak Akademi, the
+Madras Music Academy began in 1961 to republish the 1904 Telugu volume
+of notations and texts in Tamil script, responding to the needs of the grow-
+ing and by then predominantly Tamil-speaking community of musicians
+and music students of Madras. The committee of editors also sought to
+correct problems arising from the use of Telugu script for the Sanskrit
+texts, employing numerical superscripts with the Tamil letters to represent
+Sanskrit characters not found in the Tamil alphabet.”
+
+The Tamil edition is arranged according to scale type, or melakarta;
+five volumes have been published to date. ‘“Vatapi Ganapatim” is found in
+volume 4.74
+
+While this is the main source for the composition today, one remark-
+able earlier publication contains a staff notation of a fragment of ‘“Vatapi.”
+Before making Subbarama Diksitar’s acquaintance, Mr. Cinnaswami Mu-
+daliar published the first two sections, Pallavi and Anupallavi, of the al-
+ready renowned composition in 1896, as an issue of his serial, Oriental Mu-
+sic in European Notation.*> The “‘play’’ within is described on the title page
+as
+
+--- Page 9 ---
+154 Amy Catlin
+Academy of the Divine Art:
+A Series of Pseudo-Dramatic Musical Disputations
+in 72 Divisions, Discussing in the form of a diverting
+and entertaining Dialogue all the debatable and doubtful
+points connected with the Divine Art, as cultivated in the
+East as well as in the West, etc.
+
+The passage on “Vatapi’’ is introduced by praising the ragam, Ham-
+sadhvani, as a unique pentatonic mode with the fourth and sixth degrees
+omitted. After a notation of a kriti in Harnsadhvani by another trinity com-
+poser, Tyagaraja, the dialogue proceeds between Gana, ‘“A sound scholar,
+fairly advanced in Music, but anxious to learn the Staff Notation,’ and Vai-
+nikka [i.e., a-vind player], ‘“A Professor of Oriental Music, ignorant of the
+European system.”
+
+GANA: “If there’s anything in a name, and if the Bard of Avon be called a
+
+Swan, surely this RAGA deserves its name — its gait, so discerning in its se-
+
+lection of notes—and so true to the proverb that in sipping the milk it sepa-
+
+| rates and rejects the water. [Presumably this refers to the ragam’s exclusion.
+of the non-overtone notes, the fourth and sixth degrees. ]
+“Here’s one more example — the popular melody of the yreat Dikshi-
+tula.— VATAPIGANAPATIM:
+
+This notation (fig. 6) is particularly interesting because of its highly
+detailed depiction of ornaments, anticipations, and syncopations, usually
+eliminated in indigenous alphabetic notations. Very possibly, Mudaliar
+transcribed it himself by ear, after hearing someone sing the piece. A vio-
+linist in his employ customarily sight-read his notations as a check for ac-
+curacy, perhaps with the performer attending to make corrections. This
+document departs delightfully from standard notations available today,
+and, incomplete though it may be, speaks eloquently of the musical liber-
+ties and style of performers at that time.
+
+According to orally transmitted accounts of the activities of one mu-
+sician of that era, the renowned Maha Vaidyanatha lyer sang ‘’Vatapi’”’ at
+the beginning of virtually every performance. He repeated the lines while
+incorporating his own variations called sangatis, a standard technique
+used by all kriti performers today. As he was one of the most famous mu-
+sicians of his time, the composition received wide acclaim through him,
+and is said to have been passed down to the present day in the form he gave
+it.” Indeed, the most widely circulated recent notation for the piece is that
+of P. Samibamoorthy in Tamil, which contains the following acknowledg-
+
+--- Page 10 ---
+“Vatapi Ganapatim™” 155
+ment: “All the sangatis in this kriti were added later by Maha Vaidyanatha
+Iyer, 1844—1893.’8 It is also probably due to Maha Vaidyanatha lyer’s influ-
+ence that “most concerts of karnatak music open with the song vatapi gan-
+apatim.”’?? However, in response to this tradition, and also for the sake of
+variety, the Madras All-India Radio adopted a policy of not broadcasting
+the piece.*° Nevertheless, many performers began their radio concerts
+with the ragam during the period of my research (1976-78), but then pro-
+ceeded with a different, less familiar composition. Thus a new tradition
+has been established within the present century: the ragam Harnsadhvani
+has absorbed one of Ganapati’s attributes and is now associated with aus-
+picious beginnings.
+
+Musical Performances
+The purely musical elements of the krit: to Vatapi Ganapati are per-
+haps the most ephemeral of all the aspects we have examined, and they
+differ most widely with each performance. We have seen how the two
+sculptural images, as well as written notations of the piece, vary, and in
+actual performance the renditions are even more variable. The variability,
+however, can be seen in three degrees, following three posited structural
+“levels’’ of the composition, which correspond to the Schenkerian back-
+ground, middle ground, and foreground. In other words, the core level of
+_ the composition is the most stable, and the surface level permits the great-
+est degree of liberty.*!
+The core level of maximum stability was found to consist of the poetic
+text, its rhythmic setting within the composition, and the basic contours of ,
+the melodic setting. The middle level, permitting a medium degree of var-
+iability, consisted of such elements as tempo, pitch range, repetitions, and
+the structural points at which improvisation takes place. The surface level
+of maximum variability includes such elements as vocal or instrumental
+timbre of the performer, idiosyncrasies of ornamentation, expressive fea-
+tures, and other stylistics.* ,
+The Texts in Performance
+Just as an image of GaneéSa or any deity may be depicted in different
+media— bronze, stone, wood —a kriti’s performance medium is variable.
+Perhaps the most noticeable difference among the performances is the fact
+that half are vocal and the other half purely instrumental, employing the
+vind (lute), nagasvaram (oboe), violin, or clarinet. In such instrumental ver-
+
+--- Page 11 ---
+156 Amy Catlin
+sions, the role of the poetic text is altered. Only the audience members
+who already know the poetic text can appreciate the relationships between
+the instrumentalist’s musical expression and the poetry. But the instru-
+mentalist may only be thinking of the poetic text intermittently; at other
+times, he may be completely involved in the purely musical elements of
+performance. Similarly, the listener may vacillate between thinking of the
+poetic text and concentrating on the purely musical performance, even at
+times enjoying its variance with other performances he might have heard
+of the musical text. This creates a realm of communication between artist
+and listener that draws upon memories of earlier renditions and a mentally
+pondered poetic text, either of which may be referred to only sporadically,
+thus defying close scrutiny. Nevertheless, it is a powerful element in any
+karnatak instrumental performance. Further, the devotional realm of dis-
+course expressed both nonverbally and within the poetic text participates
+in the basic foundation of all South Indian music and culture. This devo-
+| tionalism forms yet another subtext to performances of all kritis, including
+; this one.
+
+Similarly, and as for all Hindu deities, Ganesa’s depiction may vary
+in size from miniature, as found in home altars, to the larger sculptures
+found in temples. Likewise, a kriti to any deity may be performed in min-
+iature, following the core of the composition without extensive develop-
+ment and variations, or on a grand scale. Thus, the dimensions of a per-
+formance are less a result of the length of the poetic and musical texts than
+a result of the performer's decisions concerning repetitions, variations, im-
+provisations, and tempo. These may be mitigated by external circum-
+stances. For example, the recording medium plays a critical role; a 78-rpm
+record can hold only about three minutes. Another time when brevity is
+normal is at the very opening of a concert, when the lord of beginnings is
+worshiped in song. Chitti Babu’s three-minute vind version in a swift
+tempo epitomizes the brief invocatory style of performing ‘‘Vatapi’’ at the
+commencement of a recital as a tribute to the remover of obstacles. Later in
+a formal concert, however, the performer lengthens one or two central kri-
+tis, after warming up with introductory pieces and shorter renditions of
+other kritis. The two performances cited here of ‘“Vatapi’”’ in such a central
+position are over twenty minutes in duration and show how the piece can
+expand to occupy the central focus of a recital.*> Here, far more time is
+given to developing the ragam Harnsadhvani before the kriti begins, as well
+as to improvised solfége passages and other elaborations. The creative as
+well as devotional involvement of the performer is highlighted above that
+of the composer of the poetic text during such ‘‘central’’ renditions.
+
+There are two features that make this kriti to Ganega unique, how-
+ever. The first is the way in which the composition parallels the deity’s tem-
+
+--- Page 12 ---
+“Vatapt Ganapatim” 157
+poral and spatial position within Hindu ritual and cosmology. Just as he is
+found most often at the proper right of the entrance, where circum-
+ambulation begins, in his subsidiary shrine within a temple devoted pri-
+marily to some other Hindu deity, ““Vatapi Ganapatim’’ occurs most fre-
+quently at the opening of a concert. In both cases, Gane§ga’s unique
+character as the lord of beginnings is central.*
+
+But Ganapati also occurs as the central figure in home shrines and
+entire temples dedicated to him. Max Miller has referred to this context-
+sensitive propensity of Hindu deities to be worshiped separately, but
+equally, as ‘““kathenotheism.” This finds a further parallel in performances
+of ““Vatapi Ganapatim,” where the kriti may occupy a central position of
+importance. Just as the image becomes the object of more elaborate rituals
+when worshiped as a central deity, the basic outlines of the kriti are highly
+developed and elaborate when the kriti is featured as a central piece in a
+concert. In the former case, the “‘work of art,” the image, does not change.
+In the latter case, however, the ‘‘work of art,”’ the musical and poetic text
+
+of the kritt, becomes refashioned by the performer's devotion and creativ-
+ity. The texts then function more as blueprints or designs, to be embel-
+lished and filled out by an artist in the role of performer. |
+
+The second unique feature is the depiction of Ganapati’s affective
+
+_ Character in his mode of the jovial, dancing, and playful child, whose be-
+heading and reheading created such a seriocomical problem for his par-
+ents. Diksitar’s delightful and rhythmic melody, which darts about in a
+manner quite unusual for the generally sober style of karnatak music, em- :
+bodies that essence. Elements of the same character can be seen in some
+visual images of Ganapati, as well as many dance depictions and musical
+expressions. Certainly the melodic and rhythmic aspects of this kriti epit-
+omize that aspect of GaneSa. We can safely say that, here, the musical ele-
+ments of ‘“Vatapi Ganapatim” speak more eloquently of Ganapati’s be-
+loved nature than do either its sculptural antecedents or its poetic text.
+There can be little doubt that it is primarily Diksitar’s inspired music, more
+than his poetry or manipulation of iconographic allusions, that has so ef-
+fectively captured the imagination and affection of South Indian musicians
+and listeners.
+
+NOTES
+1. The three composers belonging to South India’s “trinity” of saint-singers
+are Diksitar (1775-1835), Tyagaraja (1767-1847), and Syama Sastri (1762-1827).
+2. R.S., “R. K. Suryanarayana Concert,” The Indian Express, Madras, 13 Au-
+gust 1977.
