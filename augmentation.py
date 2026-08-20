@@ -110,18 +110,18 @@ class Augmentation:
                     metadata = metadata["metadata"]
 
                 book = metadata.get(
-                    "book",
+                    "original_book",
                     "Unknown Book"
                 )
 
                 chapter = metadata.get(
-                    "chapter_info",
+                    "original_chapter_info",
                     "Unknown Chapter"
                 )
 
                 text = (
-                    document.page_content
-                    if hasattr(document, "page_content")
+                    document.content
+                    if hasattr(document, "content")
                     else str(document)
                 )
 
@@ -140,12 +140,12 @@ class Augmentation:
                     metadata = metadata["metadata"]
 
                 book = metadata.get(
-                    "book",
+                    "original_book",
                     "Unknown Book"
                 )
 
                 chapter = metadata.get(
-                    "chapter_info",
+                    "original_chapter_info",
                     "Unknown Chapter"
                 )
 
