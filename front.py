@@ -3,7 +3,7 @@ import html
 import streamlit as st
 import dotenv
 
-from augmentation import Augmentation
+from agent.graph import graph
 from embedder import SentenceTransformerEmbeddings
 from langchain_astradb import AstraDBVectorStore
 
@@ -288,14 +288,14 @@ def get_vector_store():
 # CREATE AUGMENTATION SYSTEM
 # ============================================================
 
-@st.cache_resource(show_spinner="Loading RAG and reranker...")
-def get_augmentation():
+# @st.cache_resource(show_spinner="Loading RAG and reranker...")
+# def get_augmentation():
 
-    vector_store = get_vector_store()
+#     vector_store = get_vector_store()
 
-    return Augmentation(
-        vector_store=vector_store
-    )
+#     return Augmentation(
+#         vector_store=vector_store
+#     )
 
 
 # ============================================================
@@ -304,7 +304,7 @@ def get_augmentation():
 
 try:
 
-    augmentation = get_augmentation()
+    # augmentation = get_augmentation()
 
     initialized = True
 
@@ -1088,15 +1088,11 @@ if (
                 # RUN RAG
                 # ============================================
 
-                result = augmentation.augment(
-
-                    query=query,
-
-                    top_k=top_k,
-
-                    retrieve_k=retrieve_k,
-
-                    temperature=temperature
+                result = graph.invoke(
+                    {
+                        "question": query,
+                        "rewrite_count": 0
+                    }
                 )
 
 
@@ -1181,6 +1177,37 @@ if (
                     "retrieval",
                     []
                 )
+                
+                if retrieval_data:
+                    st.markdown(
+                        "## 📚 Retrieved Sources"
+                    )
+
+                    for i, item in enumerate(
+                        retrieval_data,
+                        start=1
+                    ):
+
+                        st.write(
+                            f"""
+                            **{i}. {item.get("source", "Unknown")}**
+
+                            Vector Rank:
+                            {item.get("vector_rank")}
+
+                            Vector Score:
+                            {item.get("vector_score")}
+
+                            Reranker Score:
+                            {item.get("reranker_score")}
+
+                            Page:
+                            {item.get("page_number")}
+
+                            Chunk:
+                            {item.get("chunk_id")}
+                            """
+                        )
 
 
                 if (
