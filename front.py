@@ -262,26 +262,26 @@ def get_embedder():
 # CREATE ASTRA VECTOR STORE
 # ============================================================
 
-@st.cache_resource(show_spinner="Connecting to Astra DB...")
-def get_vector_store():
+# @st.cache_resource(show_spinner="Connecting to Astra DB...")
+# def get_vector_store():
 
-    embedder = get_embedder()
+#     embedder = get_embedder()
 
-    vector_store = AstraDBVectorStore(
-        collection_name="puranas",
+#     vector_store = AstraDBVectorStore(
+#         collection_name="puranas",
 
-        embedding=embedder,
+#         embedding=embedder,
 
-        token=os.getenv(
-            "ASTRA_DB_APPLICATION_TOKEN"
-        ),
+#         token=os.getenv(
+#             "ASTRA_DB_APPLICATION_TOKEN"
+#         ),
 
-        api_endpoint=os.getenv(
-            "ASTRA_DB_API_ENDPOINT"
-        ),
-    )
+#         api_endpoint=os.getenv(
+#             "ASTRA_DB_API_ENDPOINT"
+#         ),
+#     )
 
-    return vector_store
+#     return vector_store
 
 
 # ============================================================
@@ -480,7 +480,7 @@ with st.sidebar:
 
         **Keyspace:** `default_keyspace`
 
-        **Collection:** `puranas`
+        **Collection:** `puranas, research`
 
         **Embedding:** `all-MiniLM-L6-v2`
 
