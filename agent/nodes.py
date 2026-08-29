@@ -17,9 +17,10 @@ from retrieval.retriever import GaneshRetriever
 # ============================================================
 
 retriever = GaneshRetriever(
-    collection_name="puranas",
-    retrieve_k=15,
-    top_k=5
+    puranas_collection="puranas",
+    research_collection="research",
+    retrieve_k=10,
+    top_k=6
 )
 
 
@@ -167,6 +168,7 @@ def retrieve_documents(state):
         "search_query"
     ]
 
+
     candidates = retriever.retrieve(
         query
     )
@@ -179,41 +181,89 @@ def retrieve_documents(state):
 
     for candidate in candidates:
 
+        document = candidate[
+            "document"
+        ]
+
+        metadata = candidate[
+            "metadata"
+        ]
+
+
         documents.append(
-            candidate["document"]
-        )
-
-
-        metadata = (
-            candidate["metadata"]
+            document
         )
 
 
         retrieval_info.append({
 
+            # Which AstraDB collection
+            "collection":
+                candidate.get(
+                    "collection"
+                ),
+
+            # Vector retrieval information
             "vector_rank":
-                candidate[
+                candidate.get(
                     "vector_rank"
-                ],
+                ),
 
             "vector_score":
-                candidate[
+                candidate.get(
                     "vector_score"
-                ],
+                ),
 
+            # Cross Encoder Score
             "reranker_score":
-                candidate[
+                candidate.get(
                     "reranker_score"
-                ],
+                ),
 
+            # Metadata
             "source":
                 metadata.get(
                     "source"
                 ),
 
+            "source_type":
+                metadata.get(
+                    "source_type"
+                ),
+
+            "authority":
+                metadata.get(
+                    "authority"
+                ),
+
+            "tradition":
+                metadata.get(
+                    "tradition"
+                ),
+
+            "section":
+                metadata.get(
+                    "section"
+                ),
+
+            "chapter":
+                metadata.get(
+                    "chapter"
+                ),
+
+            "chapter_number":
+                metadata.get(
+                    "chapter_number"
+                ),
+
             "page_number":
                 metadata.get(
                     "page_number"
+                ),
+
+            "citation":
+                metadata.get(
+                    "citation"
                 ),
 
             "chunk_id":
@@ -412,9 +462,13 @@ def build_context(state):
 
 
     for index, document in enumerate(
+
         documents,
+
         start=1
+
     ):
+
 
         metadata = (
             document.metadata
@@ -422,70 +476,112 @@ def build_context(state):
         )
 
 
+        # ================================================
+        # BASIC METADATA
+        # ================================================
+
         source = metadata.get(
             "source",
             "Unknown Source"
         )
 
 
+        source_type = metadata.get(
+            "source_type",
+            "unknown"
+        )
+
+
+        collection = metadata.get(
+            "collection",
+            "unknown"
+        )
+
+
+        authority = metadata.get(
+            "authority",
+            "unknown"
+        )
+
+
+        # ================================================
+        # CITATION
+        # ================================================
+
+        citation = metadata.get(
+            "citation"
+        )
+
+
+        # ================================================
+        # BUILD CONTEXT
+        # ================================================
+
         context_parts.append(
 
-            f"""
-==========================
-SOURCE {index}
-==========================
+              f"""
+            ==================================================
+            SOURCE {index}
+            ==================================================
 
-Source:
-{source}
+            Collection:
+            {collection}
 
-Source Type:
-{metadata.get("source_type", "unknown")}
+            Source:
+            {source}
 
-Authority:
-{metadata.get("authority", "unknown")}
+            Source Type:
+            {source_type}
 
-Tradition:
-{metadata.get("tradition", "unknown")}
+            Authority:
+            {authority}
 
-Section:
-{metadata.get("section", "Not specified")}
+            Tradition:
+            {metadata.get("tradition", "Not specified")}
 
-Chapter:
-{metadata.get("chapter", "Not specified")}
+            Section:
+            {metadata.get("section", "Not specified")}
 
-Chapter Number:
-{metadata.get("chapter_number", "Not specified")}
+            Chapter:
+            {metadata.get("chapter", "Not specified")}
 
-Chapter Title:
-{metadata.get("chapter_title", "Not specified")}
+            Chapter Number:
+            {metadata.get("chapter_number", "Not specified")}
 
-Page:
-{metadata.get("page_number", "Not specified")}
+            Chapter Title:
+            {metadata.get("chapter_title", "Not specified")}
 
-Citation:
-{metadata.get("citation", "Not specified")}
+            Page Number:
+            {metadata.get("page_number", "Not specified")}
 
-Chunk ID:
-{metadata.get("chunk_id", "Not specified")}
+            Citation:
+            {citation if citation else "Not specified"}
 
-Content:
+            Chunk ID:
+            {metadata.get("chunk_id", "Not specified")}
 
-{document.page_content}
 
-==========================
-"""
+            ---------------- CONTENT ----------------
+
+            {document.page_content}
+
+
+            ==================================================
+            """
         )
+
+
+    context = "\n".join(
+        context_parts
+    )
 
 
     return {
 
         "context":
-            "\n".join(
-                context_parts
-            )
+            context
     }
-
-
+    
 # ============================================================
 # NODE 6
 # GENERATE ANSWER
