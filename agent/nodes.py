@@ -401,15 +401,20 @@ def grade_documents(state):
 
         try:
 
-            answer, _ = call_openrouter(
+            result = call_openrouter(
 
                 grading_prompt,
 
                 temperature=0
             )
+            
+            response = result.get(
+                "answer",
+                ""
+            )
 
             score = (
-                answer
+                response
                 .strip()
                 .lower()
             )
@@ -474,11 +479,16 @@ def rewrite_question(state):
         question=question
     )
 
-    rewritten, _ = call_openrouter(
+    result = call_openrouter(
 
         prompt,
 
         temperature=0
+    )
+    
+    rewritten = result.get(
+        "answer",
+        state["search_query"]
     )
 
     return {
