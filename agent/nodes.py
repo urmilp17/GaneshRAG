@@ -637,10 +637,10 @@ def generate_answer(state):
         }
         
     # Decide output length based on explicit user request
-    if wants_detailed_answer(question):
-        max_tokens = 2000
-    else:
-        max_tokens = 600
+    # if wants_detailed_answer(question):
+    #     max_tokens = 2000
+    # else:
+    #     max_tokens = 600
 
 
     prompt = ANSWER_PROMPT.format(
