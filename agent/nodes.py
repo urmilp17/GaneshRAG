@@ -45,7 +45,6 @@ def call_openrouter(
             "OPENROUTER_API_KEY is not configured."
         )
 
-
     models = models or [
 
         "nvidia/nemotron-3.5-lightning",
@@ -55,12 +54,10 @@ def call_openrouter(
         "inclusionai/ling-3.0-tiny"
     ]
 
-
     url = (
         "https://openrouter.ai/api/v1/"
         "chat/completions"
     )
-
 
     headers = {
 
@@ -71,9 +68,7 @@ def call_openrouter(
             "application/json"
     }
 
-
     errors = []
-
 
     for model in models:
 
@@ -89,10 +84,9 @@ def call_openrouter(
             ],
 
             "temperature": temperature,
-            
+
             # "max_tokens": max_tokens
         }
-
 
         try:
 
@@ -107,18 +101,49 @@ def call_openrouter(
                 timeout=120
             )
 
-
             if response.status_code == 200:
 
                 data = response.json()
 
-                answer = (
-                    data["choices"][0]
-                    ["message"]["content"]
+                answer = (data["choices"][0]["message"]["content"])
+
+                # ============================================
+                # TOKEN USAGE
+                # ============================================
+
+                usage = data.get(
+                    "usage",
+                    {}
                 )
 
-                return answer, model
+                input_tokens = usage.get(
+                    "prompt_tokens",
+                    0
+                )
 
+                output_tokens = usage.get(
+                    "completion_tokens",
+                    0
+                )
+
+                total_tokens = usage.get(
+                    "total_tokens",
+                    input_tokens + output_tokens
+                )
+
+                return {"answer": answer,
+
+                        "model": data.get(
+                            "model",
+                            model
+                        ),
+                        "usage": {
+                            "prompt_tokens": input_tokens,
+
+                            "completion_tokens": output_tokens,
+
+                            "total_tokens": total_tokens
+                        }}
 
             errors.append(
                 f"{model}: "
@@ -126,13 +151,11 @@ def call_openrouter(
                 f"{response.text}"
             )
 
-
         except Exception as e:
 
             errors.append(
                 f"{model}: {str(e)}"
             )
-
 
     raise RuntimeError(
         "\n".join(errors)
@@ -171,16 +194,13 @@ def retrieve_documents(state):
         "search_query"
     ]
 
-
     candidates = retriever.retrieve(
         query
     )
 
-
     documents = []
 
     retrieval_info = []
-
 
     for candidate in candidates:
 
@@ -192,11 +212,9 @@ def retrieve_documents(state):
             "metadata"
         ]
 
-
         documents.append(
             document
         )
-
 
         retrieval_info.append({
 
@@ -275,7 +293,6 @@ def retrieve_documents(state):
                 )
         })
 
-
     return {
 
         "documents":
@@ -312,16 +329,13 @@ def grade_documents(state):
         []
     )
 
-
     if not documents:
 
         return {
             "documents_relevant": False
         }
 
-
     relevant_count = 0
-
 
     # Grade the reranked documents
 
@@ -331,7 +345,6 @@ def grade_documents(state):
             document.page_content
         )
 
-
         prompt = GRADE_PROMPT.format(
 
             question=question,
@@ -339,12 +352,10 @@ def grade_documents(state):
             context=context
         )
 
-
         grading_prompt = (
             prompt
             + "\n\nReturn ONLY YES or NO."
         )
-
 
         try:
 
@@ -355,13 +366,11 @@ def grade_documents(state):
                 temperature=0
             )
 
-
             score = (
                 answer
                 .strip()
                 .lower()
             )
-
 
             if (
                 "yes"
@@ -370,18 +379,15 @@ def grade_documents(state):
 
                 relevant_count += 1
 
-
         except Exception:
 
             continue
-
 
     # At least one useful source
 
     is_relevant = (
         relevant_count > 0
     )
-
 
     return {
 
@@ -401,14 +407,12 @@ def rewrite_question(state):
         "question"
     ]
 
-
     rewrite_count = (
         state.get(
             "rewrite_count",
             0
         )
     )
-
 
     # Prevent infinite loops
 
@@ -423,12 +427,10 @@ def rewrite_question(state):
                 rewrite_count
         }
 
-
     prompt = REWRITE_PROMPT.format(
 
         question=question
     )
-
 
     rewritten, _ = call_openrouter(
 
@@ -436,7 +438,6 @@ def rewrite_question(state):
 
         temperature=0
     )
-
 
     return {
 
@@ -460,9 +461,7 @@ def build_context(state):
         []
     )
 
-
     context_parts = []
-
 
     for index, document in enumerate(
 
@@ -472,12 +471,10 @@ def build_context(state):
 
     ):
 
-
         metadata = (
             document.metadata
             or {}
         )
-
 
         # ================================================
         # BASIC METADATA
@@ -488,24 +485,20 @@ def build_context(state):
             "Unknown Source"
         )
 
-
         source_type = metadata.get(
             "source_type",
             "unknown"
         )
-
 
         collection = metadata.get(
             "collection",
             "unknown"
         )
 
-
         authority = metadata.get(
             "authority",
             "unknown"
         )
-
 
         # ================================================
         # CITATION
@@ -515,14 +508,13 @@ def build_context(state):
             "citation"
         )
 
-
         # ================================================
         # BUILD CONTEXT
         # ================================================
 
         context_parts.append(
 
-              f"""
+            f"""
             ==================================================
             SOURCE {index}
             ==================================================
@@ -573,47 +565,47 @@ def build_context(state):
             """
         )
 
-
     context = "\n".join(
         context_parts
     )
-
 
     return {
 
         "context":
             context
     }
-    
+
 # ============================================================
 # NODE 6
 # GENERATE ANSWER
 # ============================================================
 
+
 def wants_detailed_answer(question: str) -> bool:
-        """
-        Detect whether the user explicitly requested
-        a detailed explanation.
-        """
+    """
+    Detect whether the user explicitly requested
+    a detailed explanation.
+    """
 
-        question = question.lower()
+    question = question.lower()
 
-        detailed_phrases = [
-            "answer in detail",
-            "explain in detail",
-            "explain this in detail",
-            "elaborate in detail",
-            "explain thoroughly",
-            "give a detailed explanation",
-            "provide a detailed answer",
-            "explain deeply",
-            "in great detail",
-        ]
+    detailed_phrases = [
+        "answer in detail",
+        "explain in detail",
+        "explain this in detail",
+        "elaborate in detail",
+        "explain thoroughly",
+        "give a detailed explanation",
+        "provide a detailed answer",
+        "explain deeply",
+        "in great detail",
+    ]
 
-        return any(
-            phrase in question
-            for phrase in detailed_phrases
-        )
+    return any(
+        phrase in question
+        for phrase in detailed_phrases
+    )
+
 
 def generate_answer(state):
 
@@ -626,7 +618,6 @@ def generate_answer(state):
         ""
     )
 
-
     if not context:
 
         return {
@@ -635,13 +626,12 @@ def generate_answer(state):
                 "I could not find sufficient "
                 "information in the provided sources."
         }
-        
+
     # Decide output length based on explicit user request
     # if wants_detailed_answer(question):
     #     max_tokens = 2000
     # else:
     #     max_tokens = 600
-
 
     prompt = ANSWER_PROMPT.format(
 
@@ -650,22 +640,36 @@ def generate_answer(state):
         context=context
     )
 
-
-    answer, model = call_openrouter(
+    response = call_openrouter(
 
         prompt,
 
         temperature=0.2
     )
 
+    answer = response.get(
+    "answer",
+    "No answer generated."
+    )
+
+
+    model = response.get(
+        "model",
+        "Unknown"
+    )
+
+
+    usage = response.get(
+        "usage",
+        {}
+    )
+
 
     return {
 
-        "answer":
-            answer,
+        "answer": answer,
 
-        "model":
-            model
+        "model": model,
+
+        "usage": usage
     }
-    
-    

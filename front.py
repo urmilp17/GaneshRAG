@@ -462,6 +462,15 @@ with st.sidebar:
             "to the language model."
         )
     )
+    
+    show_token_usage = st.checkbox(
+        "Show token usage",
+        value=True,
+        help=(
+            "Display input and output tokens consumed "
+            "by the language model."
+        )
+    )
 
 
     st.divider()
@@ -1098,7 +1107,7 @@ if (
 
                 st.divider()
 
-
+                
                 # ============================================
                 # ANSWER
                 # ============================================
@@ -1168,7 +1177,67 @@ if (
                     unsafe_allow_html=True
                 )
 
+                # ============================================
+                # TOKEN USAGE
+                # ============================================
 
+                if show_token_usage:
+
+                    usage = result.get(
+                        "usage",
+                        {}
+                    )
+
+                    if usage:
+
+                        input_tokens = usage.get(
+                            "prompt_tokens",
+                            usage.get("input_tokens", 0)
+                        )
+
+                        output_tokens = usage.get(
+                            "completion_tokens",
+                            usage.get("output_tokens", 0)
+                        )
+
+                        total_tokens = usage.get(
+                            "total_tokens",
+                            input_tokens + output_tokens
+                        )
+
+
+                        st.markdown(
+                            "### 📊 Token Usage"
+                        )
+
+
+                        token_col1, token_col2, token_col3 = (
+                            st.columns(3)
+                        )
+
+
+                        with token_col1:
+
+                            st.metric(
+                                "📥 Input Tokens",
+                                f"{input_tokens:,}"
+                            )
+
+
+                        with token_col2:
+
+                            st.metric(
+                                "📤 Output Tokens",
+                                f"{output_tokens:,}"
+                            )
+
+
+                        with token_col3:
+
+                            st.metric(
+                                "🔢 Total Tokens",
+                                f"{total_tokens:,}"
+                            )
                 # ============================================
                 # RANKED SOURCES
                 # ============================================
