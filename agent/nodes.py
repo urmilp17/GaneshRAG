@@ -31,7 +31,8 @@ retriever = GaneshRetriever(
 def call_openrouter(
     prompt,
     models=None,
-    temperature=0.2
+    temperature=0.2,
+    max_tokens=600
 ):
 
     api_key = os.getenv(
@@ -87,7 +88,9 @@ def call_openrouter(
                 }
             ],
 
-            "temperature": temperature
+            "temperature": temperature,
+            
+            "max_tokens": max_tokens
         }
 
 
@@ -587,6 +590,31 @@ def build_context(state):
 # GENERATE ANSWER
 # ============================================================
 
+def wants_detailed_answer(question: str) -> bool:
+        """
+        Detect whether the user explicitly requested
+        a detailed explanation.
+        """
+
+        question = question.lower()
+
+        detailed_phrases = [
+            "answer in detail",
+            "explain in detail",
+            "explain this in detail",
+            "elaborate in detail",
+            "explain thoroughly",
+            "give a detailed explanation",
+            "provide a detailed answer",
+            "explain deeply",
+            "in great detail",
+        ]
+
+        return any(
+            phrase in question
+            for phrase in detailed_phrases
+        )
+
 def generate_answer(state):
 
     question = state[
@@ -607,6 +635,12 @@ def generate_answer(state):
                 "I could not find sufficient "
                 "information in the provided sources."
         }
+        
+    # Decide output length based on explicit user request
+    if wants_detailed_answer(question):
+        max_tokens = 2000
+    else:
+        max_tokens = 600
 
 
     prompt = ANSWER_PROMPT.format(
@@ -633,3 +667,5 @@ def generate_answer(state):
         "model":
             model
     }
+    
+    
