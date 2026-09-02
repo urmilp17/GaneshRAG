@@ -1189,55 +1189,124 @@ if (
                     )
 
                     if usage:
-
-                        input_tokens = usage.get(
-                            "prompt_tokens",
-                            usage.get("input_tokens", 0)
-                        )
-
-                        output_tokens = usage.get(
-                            "completion_tokens",
-                            usage.get("output_tokens", 0)
-                        )
-
-                        total_tokens = usage.get(
-                            "total_tokens",
-                            input_tokens + output_tokens
-                        )
-
-
                         st.markdown(
                             "### 📊 Token Usage"
                         )
 
 
-                        token_col1, token_col2, token_col3 = (
-                            st.columns(3)
+                        prompt_tokens = usage.get(
+                            "prompt_tokens",
+                            0
                         )
 
 
-                        with token_col1:
+                        completion_tokens = usage.get(
+                            "completion_tokens",
+                            0
+                        )
+
+
+                        total_tokens = usage.get(
+                            "total_tokens",
+                            0
+                        )
+
+
+                        cost = usage.get(
+                            "cost",
+                            0
+                        )
+
+
+                        reasoning_tokens = usage.get(
+                            "reasoning_tokens",
+                            0
+                        )
+
+
+                        cached_tokens = usage.get(
+                            "cached_tokens",
+                            0
+                        )
+
+
+                        # ============================================
+                        # MAIN METRICS
+                        # ============================================
+
+                        col1, col2, col3, col4 = st.columns(4)
+
+
+                        with col1:
 
                             st.metric(
+
                                 "📥 Input Tokens",
-                                f"{input_tokens:,}"
+
+                                f"{prompt_tokens:,}"
                             )
 
 
-                        with token_col2:
+                        with col2:
 
                             st.metric(
+
                                 "📤 Output Tokens",
-                                f"{output_tokens:,}"
+
+                                f"{completion_tokens:,}"
                             )
 
 
-                        with token_col3:
+                        with col3:
 
                             st.metric(
+
                                 "🔢 Total Tokens",
+
                                 f"{total_tokens:,}"
                             )
+
+
+                        with col4:
+
+                            st.metric(
+
+                                "💰 Cost",
+
+                                f"${cost:.6f}"
+                            )
+
+
+                        # ============================================
+                        # ADVANCED DETAILS
+                        # ============================================
+
+                        with st.expander(
+                            "🔍 Detailed Usage Information",
+                            expanded=False
+                        ):
+
+                            detail_col1, detail_col2 = st.columns(2)
+
+
+                            with detail_col1:
+
+                                st.metric(
+
+                                    "🧠 Reasoning Tokens",
+
+                                    f"{reasoning_tokens:,}"
+                                )
+
+
+                            with detail_col2:
+
+                                st.metric(
+
+                                    "⚡ Cached Tokens",
+
+                                    f"{cached_tokens:,}"
+                                )
                 # ============================================
                 # RANKED SOURCES
                 # ============================================

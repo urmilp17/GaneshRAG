@@ -72,23 +72,24 @@ def call_openrouter(
 
     for model in models:
 
-        payload = {
-
-            "model": model,
-
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-
-            "temperature": temperature,
-
-            # "max_tokens": max_tokens
-        }
-
         try:
+
+            payload = {
+
+                "model": model,
+
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+
+                "temperature": temperature,
+
+                "max_tokens": max_tokens
+            }
+
 
             response = requests.post(
 
@@ -101,55 +102,96 @@ def call_openrouter(
                 timeout=120
             )
 
-            if response.status_code == 200:
 
-                data = response.json()
+            response.raise_for_status()
 
-                answer = (data["choices"][0]["message"]["content"])
+            data = response.json()
 
-                # ============================================
-                # TOKEN USAGE
-                # ============================================
 
-                usage = data.get(
-                    "usage",
-                    {}
-                )
+            # ============================================
+            # ANSWER
+            # ============================================
 
-                input_tokens = usage.get(
-                    "prompt_tokens",
-                    0
-                )
+            answer = (
+                data["choices"][0]
+                ["message"]
+                ["content"]
+            )
 
-                output_tokens = usage.get(
-                    "completion_tokens",
-                    0
-                )
 
-                total_tokens = usage.get(
-                    "total_tokens",
-                    input_tokens + output_tokens
-                )
+            # ============================================
+            # USAGE ACCOUNTING
+            # ============================================
 
-                return {"answer": answer,
+            usage_data = data.get(
+                "usage",
+                {}
+            )
 
-                        "model": data.get(
-                            "model",
-                            model
-                        ),
-                        "usage": {
-                            "prompt_tokens": input_tokens,
 
-                            "completion_tokens": output_tokens,
+            usage = {
 
-                            "total_tokens": total_tokens
-                        }}
+                "prompt_tokens":
+                    usage_data.get(
+                        "prompt_tokens",
+                        0
+                    ),
+
+                "completion_tokens":
+                    usage_data.get(
+                        "completion_tokens",
+                        0
+                    ),
+
+                "total_tokens":
+                    usage_data.get(
+                        "total_tokens",
+                        0
+                    ),
+
+                "cost":
+                    usage_data.get(
+                        "cost",
+                        0
+                    ),
+
+                "reasoning_tokens":
+                    usage_data.get(
+                        "completion_tokens_details",
+                        {}
+                    ).get(
+                        "reasoning_tokens",
+                        0
+                    ),
+
+                "cached_tokens":
+                    usage_data.get(
+                        "prompt_tokens_details",
+                        {}
+                    ).get(
+                        "cached_tokens",
+                        0
+                    )
+            }
 
             errors.append(
-                f"{model}: "
-                f"{response.status_code} "
-                f"{response.text}"
-            )
+                            f"{model}: "
+                            f"{response.status_code} "
+                            f"{response.text}"
+                        )
+            
+            return {
+
+                "answer": answer,
+
+                "model":
+                    data.get(
+                        "model",
+                        model
+                    ),
+
+                "usage": usage
+            }
 
         except Exception as e:
 
@@ -622,9 +664,13 @@ def generate_answer(state):
 
         return {
 
-            "answer":
+            "answer": (
                 "I could not find sufficient "
                 "information in the provided sources."
+            ),
+            "model": None,
+
+            "usage": {}
         }
 
     # Decide output length based on explicit user request
@@ -647,29 +693,23 @@ def generate_answer(state):
         temperature=0.2
     )
 
-    answer = response.get(
-    "answer",
-    "No answer generated."
-    )
-
-
-    model = response.get(
-        "model",
-        "Unknown"
-    )
-
-
-    usage = response.get(
-        "usage",
-        {}
-    )
-
-
     return {
 
-        "answer": answer,
+        "answer":
+            response.get(
+                "answer",
+                "No answer generated."
+            ),
 
-        "model": model,
+        "model":
+            response.get(
+                "model",
+                "Unknown"
+            ),
 
-        "usage": usage
+        "usage":
+            response.get(
+                "usage",
+                {}
+            )
     }

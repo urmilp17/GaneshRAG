@@ -32,3 +32,6 @@ class AgentState(TypedDict, total=False):
 
     # Errors
     errors: List[str]
+    
+    #Usage
+    usage: dict
