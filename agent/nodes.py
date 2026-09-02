@@ -90,7 +90,7 @@ def call_openrouter(
 
             "temperature": temperature,
             
-            "max_tokens": max_tokens
+            # "max_tokens": max_tokens
         }
 
 
