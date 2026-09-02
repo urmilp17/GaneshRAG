@@ -1041,8 +1041,8 @@ def generate_answer(state):
         )
 
         return {
-
             "answer": (
+                {e},
                 "The language model could not generate "
                 "an answer at this time. Please try again."
             ),
