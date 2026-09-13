@@ -102,7 +102,8 @@ def call_openrouter(
     prompt,
     models=None,
     temperature=0.2,
-    max_tokens=600
+    max_tokens=600,
+    reasoning_effort="none"
 ):
     """
     Call OpenRouter API.
@@ -132,6 +133,7 @@ def call_openrouter(
     # --------------------------------------------------------
 
     models = models or [
+        "deepseek/deepseek-v4.1-flash",
         "inclusionai/ling-3.0-flash-vl",
         "nex-agi/nex-n2.5-pro"
     ]
@@ -161,7 +163,6 @@ def call_openrouter(
         try:
 
             payload = {
-
                 "model": model,
 
                 "messages": [
@@ -173,7 +174,11 @@ def call_openrouter(
 
                 "temperature": temperature,
 
-                "max_tokens": max_tokens
+                "max_tokens": max_tokens,
+
+                "reasoning": {
+                    "effort": reasoning_effort
+                }
             }
 
             response = requests.post(
@@ -1038,12 +1043,9 @@ def generate_answer(state):
 
         return {
             "answer": (
-                {e},
-                "The language model could not generate "
-                "an answer at this time. Please try again."
+                "The language model could not generate an answer "
+                "at this time. Please try again."
             ),
-
             "model": None,
-
             "usage": current_usage
         }
