@@ -18,6 +18,7 @@ class GaneshRetriever:
         self,
         puranas_collection="puranas",
         research_collection="research",
+        iconography_collection="iconography",
         retrieve_k=10,
         top_k=6,
         reranker_model="BAAI/bge-reranker-v2-m3"
@@ -64,6 +65,25 @@ class GaneshRetriever:
         self.research_vector_store = AstraDBVectorStore(
 
             collection_name=research_collection,
+
+            embedding=self.embedder,
+
+            token=os.getenv(
+                "ASTRA_DB_APPLICATION_TOKEN"
+            ),
+
+            api_endpoint=os.getenv(
+                "ASTRA_DB_API_ENDPOINT"
+            )
+        )
+
+        # =====================================================
+        # ICONOGRAPHY VECTOR STORE
+        # =====================================================
+
+        self.iconography_vector_store = AstraDBVectorStore(
+
+            collection_name=iconography_collection,
 
             embedding=self.embedder,
 
@@ -199,9 +219,9 @@ class GaneshRetriever:
 
             "traditional_text": 0.90,
 
-            "sahasranama": 0.85,
+            "sahasranama": 0.89,
 
-            "iconography": 0.70,
+            "iconography": 0.88,
 
             "research": 0.60,
 
@@ -252,17 +272,34 @@ class GaneshRetriever:
                 collection_name="research"
             )
         )
+        
+        # -----------------------------------------------------
+        # 3. Retrieve from Iconography
+        # -----------------------------------------------------
+
+        iconography_candidates = (
+            self.retrieve_from_collection(
+
+                vector_store=
+                    self.iconography_vector_store,
+
+                query=query,
+
+                collection_name="iconography"
+            )
+        )
 
 
         # -----------------------------------------------------
-        # 3. Combine candidates
+        # 4. Combine candidates
         # -----------------------------------------------------
 
         candidates = (
-
             puranas_candidates
             +
             research_candidates
+            +
+            iconography_candidates
         )
 
 
@@ -279,6 +316,11 @@ class GaneshRetriever:
             f"Research: "
             f"{len(research_candidates)}"
         )
+        
+        print(
+            f"Iconography: "
+            f"{len(iconography_candidates)}"
+        )
 
         print(
             f"Total: "
@@ -292,7 +334,7 @@ class GaneshRetriever:
 
 
         # =====================================================
-        # 4. CROSS-ENCODER RERANKING
+        # 5. CROSS-ENCODER RERANKING
         # =====================================================
 
         pairs = [
@@ -337,7 +379,7 @@ class GaneshRetriever:
 
 
         # =====================================================
-        # 5. SORT BY RERANKER SCORE
+        # 6. SORT BY RERANKER SCORE
         # =====================================================
 
         candidates.sort(
@@ -350,7 +392,7 @@ class GaneshRetriever:
 
 
         # =====================================================
-        # 6. FINAL TOP K
+        # 7. FINAL TOP K
         # =====================================================
 
         final_candidates = candidates[

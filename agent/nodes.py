@@ -132,10 +132,8 @@ def call_openrouter(
     # --------------------------------------------------------
 
     models = models or [
-
-        "nvidia/nemotron-3.5-lightning",
-        "inclusionai/ling-3.0-flash-fin",
-        "liquid/lfm-2.5-2.6b"
+        "inclusionai/ling-3.0-flash-vl",
+        "nex-agi/nex-n2.5-pro"
     ]
 
     url = (
