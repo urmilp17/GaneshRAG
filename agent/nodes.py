@@ -19,6 +19,7 @@ from retrieval.retriever import GaneshRetriever
 retriever = GaneshRetriever(
     puranas_collection="puranas",
     research_collection="research",
+    iconography_collection="iconography",
     retrieve_k=10,
     top_k=6
 )
@@ -102,7 +103,7 @@ def call_openrouter(
     prompt,
     models=None,
     temperature=0.2,
-    max_tokens=600,
+    max_tokens=800,
     reasoning_effort="none"
 ):
     """
