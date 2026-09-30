@@ -19,6 +19,7 @@ class GaneshRetriever:
         puranas_collection="puranas",
         research_collection="research",
         iconography_collection="iconography",
+        rahasya_collection="rahasya",
         retrieve_k=10,
         top_k=6,
         reranker_model="BAAI/bge-reranker-v2-m3"
@@ -84,6 +85,25 @@ class GaneshRetriever:
         self.iconography_vector_store = AstraDBVectorStore(
 
             collection_name=iconography_collection,
+
+            embedding=self.embedder,
+
+            token=os.getenv(
+                "ASTRA_DB_APPLICATION_TOKEN"
+            ),
+
+            api_endpoint=os.getenv(
+                "ASTRA_DB_API_ENDPOINT"
+            )
+        )
+        
+        # =====================================================
+        # VINAYAK RAHASYA VECTOR STORE
+        # =====================================================
+
+        self.rahasya_vector_store = AstraDBVectorStore(
+
+            collection_name=rahasya_collection,
 
             embedding=self.embedder,
 
@@ -222,6 +242,8 @@ class GaneshRetriever:
             "sahasranama": 0.89,
 
             "iconography": 0.88,
+            
+            "rahasya": 0.87,
 
             "research": 0.60,
 
@@ -288,6 +310,22 @@ class GaneshRetriever:
                 collection_name="iconography"
             )
         )
+        
+        # -----------------------------------------------------
+        # 4. Retrieve from Vinayak Rahasya
+        # -----------------------------------------------------
+
+        rahasya_candidates = (
+            self.retrieve_from_collection(
+
+                vector_store=
+                    self.rahasya_vector_store,
+
+                query=query,
+
+                collection_name="rahasya"
+            )
+        )
 
 
         # -----------------------------------------------------
@@ -300,6 +338,8 @@ class GaneshRetriever:
             research_candidates
             +
             iconography_candidates
+            +
+            rahasya_candidates
         )
 
 
@@ -320,6 +360,11 @@ class GaneshRetriever:
         print(
             f"Iconography: "
             f"{len(iconography_candidates)}"
+        )
+        
+        print(
+            f"Vinayak Rahasya: "
+            f"{len(rahasya_candidates)}"
         )
 
         print(

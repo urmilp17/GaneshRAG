@@ -20,6 +20,7 @@ retriever = GaneshRetriever(
     puranas_collection="puranas",
     research_collection="research",
     iconography_collection="iconography",
+    rahasya_collection="rahasya",
     retrieve_k=10,
     top_k=6
 )
@@ -799,54 +800,54 @@ def build_context(state):
         context_parts.append(
 
             f"""
-==================================================
-SOURCE {index}
-==================================================
+            ==================================================
+            SOURCE {index}
+            ==================================================
 
-Collection:
-{collection}
+            Collection:
+            {collection}
 
-Source:
-{source}
+            Source:
+            {source}
 
-Source Type:
-{source_type}
+            Source Type:
+            {source_type}
 
-Authority:
-{authority}
+            Authority:
+            {authority}
 
-Tradition:
-{metadata.get("tradition", "Not specified")}
+            Tradition:
+            {metadata.get("tradition", "Not specified")}
 
-Section:
-{metadata.get("section", "Not specified")}
+            Section:
+            {metadata.get("section", "Not specified")}
 
-Chapter:
-{metadata.get("chapter", "Not specified")}
+            Chapter:
+            {metadata.get("chapter", "Not specified")}
 
-Chapter Number:
-{metadata.get("chapter_number", "Not specified")}
+            Chapter Number:
+            {metadata.get("chapter_number", "Not specified")}
 
-Chapter Title:
-{metadata.get("chapter_title", "Not specified")}
+            Chapter Title:
+            {metadata.get("chapter_title", "Not specified")}
 
-Page Number:
-{metadata.get("page_number", "Not specified")}
+            Page Number:
+            {metadata.get("page_number", "Not specified")}
 
-Citation:
-{citation if citation else "Not specified"}
+            Citation:
+            {citation if citation else "Not specified"}
 
-Chunk ID:
-{metadata.get("chunk_id", "Not specified")}
-
-
----------------- CONTENT ----------------
-
-{document.page_content}
+            Chunk ID:
+            {metadata.get("chunk_id", "Not specified")}
 
 
-==================================================
-"""
+            ---------------- CONTENT ----------------
+
+            {document.page_content}
+
+
+            ==================================================
+            """
         )
 
     context = "\n".join(
