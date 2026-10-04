@@ -21,6 +21,7 @@ class GaneshRetriever:
         iconography_collection="iconography",
         rahasya_collection="rahasya",
         sahastranaam_collection="sahastranaam",
+        upanishad_collection="upanishad",
         retrieve_k=10,
         top_k=6,
         reranker_model="BAAI/bge-reranker-v2-m3"
@@ -124,6 +125,25 @@ class GaneshRetriever:
         self.sahastranaam_vector_store = AstraDBVectorStore(
 
             collection_name=sahastranaam_collection,
+
+            embedding=self.embedder,
+
+            token=os.getenv(
+                "ASTRA_DB_APPLICATION_TOKEN"
+            ),
+
+            api_endpoint=os.getenv(
+                "ASTRA_DB_API_ENDPOINT"
+            )
+        )
+        
+        # =====================================================
+        # UPANISHAD VECTOR STORE
+        # =====================================================
+
+        self.upanishad_vector_store = AstraDBVectorStore(
+
+            collection_name=upanishad_collection,
 
             embedding=self.embedder,
 
@@ -362,10 +382,26 @@ class GaneshRetriever:
                 collection_name="sahastranaam"
             )
         )
+        
+        # -----------------------------------------------------
+        # 6. Retrieve from Upanishads
+        # -----------------------------------------------------
+
+        upanishad_candidates = (
+            self.retrieve_from_collection(
+
+                vector_store=
+                    self.upanishad_vector_store,
+
+                query=query,
+
+                collection_name="upanishad"
+            )
+        )
 
 
         # -----------------------------------------------------
-        # 6. Combine candidates
+        # 7. Combine candidates
         # -----------------------------------------------------
 
         candidates = (
@@ -378,6 +414,8 @@ class GaneshRetriever:
             rahasya_candidates
             +
             sahastranaam_candidates
+            +
+            upanishad_candidates
         )
 
 
@@ -408,6 +446,11 @@ class GaneshRetriever:
         print(
             f"Ganesh Sahastranaam: "
             f"{len(sahastranaam_candidates)}"
+        )
+        
+        print(
+            f"Upanishads: "
+            f"{len(upanishad_candidates)}"
         )
 
         print(

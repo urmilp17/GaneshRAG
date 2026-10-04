@@ -22,6 +22,7 @@ retriever = GaneshRetriever(
     iconography_collection="iconography",
     rahasya_collection="rahasya",
     sahastranaam_collection="sahastranaam",
+    upanishad_collection="upanishads",
     retrieve_k=10,
     top_k=6
 )
