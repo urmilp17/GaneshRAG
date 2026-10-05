@@ -1,7 +1,6 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
-from typing import List, Optional, Dict, Any
-from tqdm import tqdm
+from typing import List, Dict, Any
 
 class SentenceTransformerEmbeddings():
     """
@@ -108,7 +107,7 @@ class SentenceTransformerEmbeddings():
         Returns:
             Embedding dimension
         """
-        return self.model.get_sentence_embedding_dimension()
+        return self.model.get_embedding_dimension()
     
     def save_embeddings(self, embedded_documents: List[Dict[str, Any]], filepath: str = "embeddings.npy"):
         """

@@ -8,3 +8,12 @@ ganeshrag-3dbd797255c6.json
 audiodata.ipynb
 mygitoken
 /docs
+transcription_full.txt
+/downloaded_audio
+Refutation_of_Ganapatyas.txt
+augmentation.py
+dataIngestion.ipynb
+embeddings.npy
+devanagari_ocr.py
+retriever.py
+vectorstore.py
