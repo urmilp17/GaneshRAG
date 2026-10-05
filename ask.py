@@ -1,24 +1,16 @@
 import requests
-import json
-import os
-import dotenv
 
-dotenv.load_dotenv(override=True)
-
-url = "https://openrouter.ai/api/v1/chat/completions"
-headers = {
-    "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
-    "Content-Type": "application/json"
-}
-payload = {
-    "model": "deepseek/deepseek-v4.1-flash",
-    "messages": [
-        {
-            "role": "user",
-            "content": "If you built the world's tallest skyscraper, what would you name it?"
-        }
-    ]
-}
-
-response = requests.post(url, headers=headers, json=payload)
-print(response.json())
+resp = requests.post(
+    "http://localhost:8000/query",
+    json={"question": "What is Ganesh Hridayam ? Explain the meaning of the name Ekdanta from it."},
+    timeout=120,
+)
+resp.raise_for_status()
+data = resp.json()
+print(data)
+print("ANSWER:\n", data["answer"])
+print("\nMODEL:", data.get("model"))
+print("TOKENS:", data.get("usage"))
+print("\nSOURCES:")
+for i, src in enumerate(data.get("retrieval", []), 1):
+    print(f"  {i}. {src.get('source')} (page {src.get('page_number')})")
