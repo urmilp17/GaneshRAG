@@ -1,5 +1,9 @@
 import os
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import requests
+from requests.adapters import HTTPAdapter
 import dotenv
 
 dotenv.load_dotenv(override=True)
@@ -9,14 +13,36 @@ from pydantic import BaseModel, Field
 from agent.prompts import (
     GRADE_PROMPT,
     REWRITE_PROMPT,
-    ANSWER_PROMPT
+    ANSWER_PROMPT,
 )
 
 from retrieval.retriever import GaneshRetriever
 
+log = logging.getLogger("ganesh-rag.nodes")
+
 
 # ============================================================
-# GLOBAL RETRIEVER
+# TUNING KNOBS (override with env vars)
+# ============================================================
+
+# If the best reranker score is >= this, skip LLM grading entirely.
+# bge-reranker-v2-m3 via sentence-transformers returns 0..1 (sigmoid).
+# Calibrate by looking at `retrieval[*].reranker_score` for known good/bad queries.
+RELEVANCE_SKIP_THRESHOLD = float(os.getenv("RELEVANCE_SKIP_THRESHOLD", "0.5"))
+
+# When the reranker isn't confident, LLM-grade only the top N docs (in parallel).
+GRADE_MAX_DOCS = int(os.getenv("GRADE_MAX_DOCS", "3"))
+
+# Max characters of a doc sent to the grader.
+GRADE_DOC_CHARS = int(os.getenv("GRADE_DOC_CHARS", "1500"))
+
+GRADE_TIMEOUT = int(os.getenv("GRADE_TIMEOUT", "15"))
+REWRITE_TIMEOUT = int(os.getenv("REWRITE_TIMEOUT", "15"))
+ANSWER_TIMEOUT = int(os.getenv("ANSWER_TIMEOUT", "60"))
+
+
+# ============================================================
+# GLOBAL RETRIEVER (loaded once at import)
 # ============================================================
 
 retriever = GaneshRetriever(
@@ -27,7 +53,7 @@ retriever = GaneshRetriever(
     sahastranaam_collection="sahastranaam",
     upanishad_collection="upanishads",
     retrieve_k=10,
-    top_k=6
+    top_k=6,
 )
 
 
@@ -35,1024 +61,398 @@ retriever = GaneshRetriever(
 # USAGE HELPERS
 # ============================================================
 
-def empty_usage():
-    """
-    Return a standardized empty usage dictionary.
-    """
+_USAGE_KEYS = (
+    "prompt_tokens",
+    "completion_tokens",
+    "total_tokens",
+    "reasoning_tokens",
+    "cached_tokens",
+)
 
+
+def empty_usage():
     return {
         "prompt_tokens": 0,
         "completion_tokens": 0,
         "total_tokens": 0,
         "cost": 0.0,
         "reasoning_tokens": 0,
-        "cached_tokens": 0
+        "cached_tokens": 0,
     }
 
 
 def add_usage(existing_usage, new_usage):
-    """
-    Add usage from multiple LLM calls.
-
-    This is important because the Agentic RAG pipeline
-    can make multiple OpenRouter calls:
-
-    1. Document grading
-    2. Query rewriting
-    3. Final answer generation
-
-    The total usage displayed to the user should include
-    all of them.
-    """
-
+    """Sum usage across all LLM calls in the agentic workflow."""
     existing_usage = existing_usage or empty_usage()
     new_usage = new_usage or empty_usage()
 
-    return {
-        "prompt_tokens": (
-            existing_usage.get("prompt_tokens", 0)
-            + new_usage.get("prompt_tokens", 0)
-        ),
-
-        "completion_tokens": (
-            existing_usage.get("completion_tokens", 0)
-            + new_usage.get("completion_tokens", 0)
-        ),
-
-        "total_tokens": (
-            existing_usage.get("total_tokens", 0)
-            + new_usage.get("total_tokens", 0)
-        ),
-
-        "cost": (
-            float(existing_usage.get("cost", 0))
-            + float(new_usage.get("cost", 0))
-        ),
-
-        "reasoning_tokens": (
-            existing_usage.get("reasoning_tokens", 0)
-            + new_usage.get("reasoning_tokens", 0)
-        ),
-
-        "cached_tokens": (
-            existing_usage.get("cached_tokens", 0)
-            + new_usage.get("cached_tokens", 0)
-        )
-    }
+    total = {k: existing_usage.get(k, 0) + new_usage.get(k, 0) for k in _USAGE_KEYS}
+    total["cost"] = float(existing_usage.get("cost", 0)) + float(new_usage.get("cost", 0))
+    return total
 
 
 # ============================================================
-# OPENROUTER CALL
+# OPENROUTER CALL (pooled connections, per-call timeout)
 # ============================================================
+
+_session = requests.Session()
+_session.mount("https://", HTTPAdapter(pool_connections=10, pool_maxsize=20))
+
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+DEFAULT_MODELS = [
+    "deepseek/deepseek-v4.1-flash",
+    "inclusionai/ling-3.0-flash-vl",
+    "nex-agi/nex-n2.5-pro",
+]
+
 
 def call_openrouter(
     prompt,
     models=None,
     temperature=0.2,
     max_tokens=800,
-    reasoning_effort="none"
+    reasoning_effort="none",
+    timeout=60,
 ):
     """
-    Call OpenRouter API.
-
-    Always returns a dictionary with:
-
-    {
-        "answer": str,
-        "model": str,
-        "usage": dict
-    }
-
-    This prevents tuple unpacking errors.
+    Returns {"answer": str, "model": str, "usage": dict}.
+    `timeout` is per model attempt. Keep it short for grade/rewrite calls so a slow
+    primary model falls through to the next one quickly instead of stalling for 120s.
     """
-
-    api_key = os.getenv(
-        "OPENROUTER_API_KEY"
-    )
-
+    api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
-        raise ValueError(
-            "OPENROUTER_API_KEY is not configured."
-        )
+        raise ValueError("OPENROUTER_API_KEY is not configured.")
 
-    # --------------------------------------------------------
-    # FALLBACK MODELS
-    # --------------------------------------------------------
-
-    models = models or [
-        "deepseek/deepseek-v4.1-flash",
-        "inclusionai/ling-3.0-flash-vl",
-        "nex-agi/nex-n2.5-pro"
-    ]
-
-    url = (
-        "https://openrouter.ai/api/v1/"
-        "chat/completions"
-    )
-
+    models = models or DEFAULT_MODELS
     headers = {
-
-        "Authorization":
-            f"Bearer {api_key}",
-
-        "Content-Type":
-            "application/json"
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
     }
 
     errors = []
 
-    # --------------------------------------------------------
-    # TRY FALLBACK MODELS
-    # --------------------------------------------------------
-
     for model in models:
-
         try:
-
             payload = {
                 "model": model,
-
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-
+                "messages": [{"role": "user", "content": prompt}],
                 "temperature": temperature,
-
                 "max_tokens": max_tokens,
-
-                "reasoning": {
-                    "effort": reasoning_effort
-                }
+                "reasoning": {"effort": reasoning_effort},
             }
 
-            response = requests.post(
-
-                url,
-
-                headers=headers,
-
-                json=payload,
-
-                timeout=120
+            response = _session.post(
+                OPENROUTER_URL, headers=headers, json=payload, timeout=timeout
             )
-
-            # ------------------------------------------------
-            # HANDLE FAILED MODEL
-            # ------------------------------------------------
 
             if response.status_code != 200:
-
-                errors.append(
-                    f"{model}: "
-                    f"HTTP {response.status_code} - "
-                    f"{response.text}"
-                )
-
+                errors.append(f"{model}: HTTP {response.status_code} - {response.text}")
                 continue
-
-            # ------------------------------------------------
-            # PARSE RESPONSE
-            # ------------------------------------------------
 
             data = response.json()
-
-            choices = data.get(
-                "choices",
-                []
-            )
-
+            choices = data.get("choices", [])
             if not choices:
-
-                errors.append(
-                    f"{model}: "
-                    "No choices returned."
-                )
-
+                errors.append(f"{model}: No choices returned.")
                 continue
 
-            message = choices[0].get(
-                "message",
-                {}
-            )
-
-            answer = message.get(
-                "content",
-                ""
-            )
-
+            answer = (choices[0].get("message", {}) or {}).get("content", "")
             if not answer:
-
-                errors.append(
-                    f"{model}: "
-                    "Empty answer returned."
-                )
-
+                errors.append(f"{model}: Empty answer returned.")
                 continue
 
-            # =================================================
-            # OPENROUTER USAGE ACCOUNTING
-            # =================================================
-
-            usage_data = data.get(
-                "usage",
-                {}
-            )
-
-            completion_details = usage_data.get(
-                "completion_tokens_details",
-                {}
-            ) or {}
-
-            prompt_details = usage_data.get(
-                "prompt_tokens_details",
-                {}
-            ) or {}
+            usage_data = data.get("usage", {}) or {}
+            completion_details = usage_data.get("completion_tokens_details", {}) or {}
+            prompt_details = usage_data.get("prompt_tokens_details", {}) or {}
 
             usage = {
-
-                "prompt_tokens":
-                    usage_data.get(
-                        "prompt_tokens",
-                        0
-                    ),
-
-                "completion_tokens":
-                    usage_data.get(
-                        "completion_tokens",
-                        0
-                    ),
-
-                "total_tokens":
-                    usage_data.get(
-                        "total_tokens",
-                        0
-                    ),
-
-                "cost":
-                    float(
-                        usage_data.get(
-                            "cost",
-                            0
-                        )
-                    ),
-
-                "reasoning_tokens":
-                    completion_details.get(
-                        "reasoning_tokens",
-                        0
-                    ),
-
-                "cached_tokens":
-                    prompt_details.get(
-                        "cached_tokens",
-                        0
-                    )
+                "prompt_tokens": usage_data.get("prompt_tokens", 0),
+                "completion_tokens": usage_data.get("completion_tokens", 0),
+                "total_tokens": usage_data.get("total_tokens", 0),
+                "cost": float(usage_data.get("cost", 0) or 0),
+                "reasoning_tokens": completion_details.get("reasoning_tokens", 0),
+                "cached_tokens": prompt_details.get("cached_tokens", 0),
             }
 
-            # ------------------------------------------------
-            # SUCCESS
-            # ------------------------------------------------
-
             return {
-
                 "answer": answer.strip(),
-
-                "model":
-                    data.get(
-                        "model",
-                        model
-                ),
-
-                "usage": usage
+                "model": data.get("model", model),
+                "usage": usage,
             }
 
         except requests.exceptions.Timeout:
-
-            errors.append(
-                f"{model}: Request timed out."
-            )
-
+            errors.append(f"{model}: Request timed out.")
         except requests.exceptions.RequestException as e:
-
-            errors.append(
-                f"{model}: Request error - {str(e)}"
-            )
-
+            errors.append(f"{model}: Request error - {e}")
         except ValueError as e:
-
-            errors.append(
-                f"{model}: Invalid JSON response - {str(e)}"
-            )
-
+            errors.append(f"{model}: Invalid JSON response - {e}")
         except Exception as e:
+            errors.append(f"{model}: Unexpected error - {e}")
 
-            errors.append(
-                f"{model}: Unexpected error - {str(e)}"
-            )
-
-    # --------------------------------------------------------
-    # ALL MODELS FAILED
-    # --------------------------------------------------------
-
-    raise RuntimeError(
-        "All OpenRouter models failed:\n\n"
-        + "\n".join(errors)
-    )
+    raise RuntimeError("All OpenRouter models failed:\n\n" + "\n".join(errors))
 
 
 # ============================================================
-# NODE 1
-# GENERATE SEARCH QUERY
+# NODE 1 - GENERATE SEARCH QUERY
 # ============================================================
 
 def generate_query(state):
-
     question = state["question"]
-
     return {
-
         "search_query": question,
-
-        "rewrite_count":
-            state.get(
-                "rewrite_count",
-                0
-            ),
-
-        "usage":
-            state.get(
-                "usage",
-                empty_usage()
-            )
+        "rewrite_count": state.get("rewrite_count", 0),
+        "usage": state.get("usage", empty_usage()),
     }
 
 
 # ============================================================
-# NODE 2
-# RETRIEVE DOCUMENTS
+# NODE 2 - RETRIEVE DOCUMENTS
 # ============================================================
+
+_CANDIDATE_FIELDS = ("collection", "vector_rank", "vector_score", "reranker_score")
+_METADATA_FIELDS = (
+    "source",
+    "source_type",
+    "authority",
+    "tradition",
+    "section",
+    "chapter",
+    "chapter_number",
+    "page_number",
+    "citation",
+    "chunk_id",
+)
+
 
 def retrieve_documents(state):
+    candidates = retriever.retrieve(state["search_query"])
 
-    query = state[
-        "search_query"
-    ]
-
-    candidates = retriever.retrieve(
-        query
-    )
-
-    documents = []
-
-    retrieval_info = []
+    documents, retrieval_info = [], []
 
     for candidate in candidates:
+        documents.append(candidate["document"])
+        metadata = candidate.get("metadata", {}) or {}
 
-        document = candidate[
-            "document"
-        ]
+        info = {k: candidate.get(k) for k in _CANDIDATE_FIELDS}
+        info.update({k: metadata.get(k) for k in _METADATA_FIELDS})
+        retrieval_info.append(info)
 
-        metadata = candidate.get(
-            "metadata",
-            {}
-        ) or {}
-
-        documents.append(
-            document
-        )
-
-        retrieval_info.append({
-
-            "collection":
-                candidate.get(
-                    "collection"
-                ),
-
-            "vector_rank":
-                candidate.get(
-                    "vector_rank"
-                ),
-
-            "vector_score":
-                candidate.get(
-                    "vector_score"
-                ),
-
-            "reranker_score":
-                candidate.get(
-                    "reranker_score"
-                ),
-
-            "source":
-                metadata.get(
-                    "source"
-                ),
-
-            "source_type":
-                metadata.get(
-                    "source_type"
-                ),
-
-            "authority":
-                metadata.get(
-                    "authority"
-                ),
-
-            "tradition":
-                metadata.get(
-                    "tradition"
-                ),
-
-            "section":
-                metadata.get(
-                    "section"
-                ),
-
-            "chapter":
-                metadata.get(
-                    "chapter"
-                ),
-
-            "chapter_number":
-                metadata.get(
-                    "chapter_number"
-                ),
-
-            "page_number":
-                metadata.get(
-                    "page_number"
-                ),
-
-            "citation":
-                metadata.get(
-                    "citation"
-                ),
-
-            "chunk_id":
-                metadata.get(
-                    "chunk_id"
-                )
-        })
-
-    return {
-
-        "documents": documents,
-
-        "retrieval": retrieval_info
-    }
+    return {"documents": documents, "retrieval": retrieval_info}
 
 
 # ============================================================
-# NODE 3
-# GRADE DOCUMENTS
+# NODE 3 - GRADE DOCUMENTS
+#   1) Trust the cross-encoder when it is confident (0 LLM calls).
+#   2) Otherwise grade the top few docs IN PARALLEL and stop at the first YES.
+#   Original: one sequential LLM call per document (6 calls) on every pass.
 # ============================================================
 
 class GradeDocuments(BaseModel):
+    binary_score: str = Field(description="YES if relevant, NO if irrelevant")
 
-    binary_score: str = Field(
 
-        description=(
-            "YES if relevant, "
-            "NO if irrelevant"
-        )
+def _grade_one(question, document):
+    prompt = GRADE_PROMPT.format(
+        question=question,
+        context=document.page_content[:GRADE_DOC_CHARS],
+    )
+    return call_openrouter(
+        prompt,
+        temperature=0,
+        max_tokens=10,
+        timeout=GRADE_TIMEOUT,
     )
 
 
 def grade_documents(state):
-    """
-    Grade reranked documents for relevance.
-
-    Uses small max_tokens because the answer should only be:
-    YES or NO.
-    """
-
-    question = state[
-        "question"
-    ]
-
-    documents = state.get(
-        "documents",
-        []
-    )
-
-    current_usage = state.get(
-        "usage",
-        empty_usage()
-    )
+    question = state["question"]
+    documents = state.get("documents", [])
+    retrieval = state.get("retrieval", []) or []
+    usage = state.get("usage", empty_usage())
 
     if not documents:
+        return {"documents_relevant": False, "usage": usage}
 
-        return {
+    # ---- fast path: reranker is confident -> no LLM call ----
+    top_score = max((r.get("reranker_score") or 0.0) for r in retrieval) if retrieval else 0.0
+    if top_score >= RELEVANCE_SKIP_THRESHOLD:
+        log.info("grade: skipped LLM (top reranker score %.3f)", top_score)
+        return {"documents_relevant": True, "usage": usage}
 
-            "documents_relevant": False,
+    # ---- slow path: parallel grading of the top docs, early exit on first YES ----
+    to_grade = documents[:GRADE_MAX_DOCS]  # already sorted best-first by the reranker
+    relevant = False
 
-            "usage": current_usage
-        }
+    pool = ThreadPoolExecutor(max_workers=len(to_grade))
+    futures = [pool.submit(_grade_one, question, d) for d in to_grade]
+    try:
+        for fut in as_completed(futures):
+            try:
+                result = fut.result()
+            except Exception as e:
+                log.warning("Document grading failed: %s", e)
+                continue
 
-    relevant_count = 0
+            usage = add_usage(usage, result.get("usage"))
 
-    total_usage = current_usage
+            if result.get("answer", "").strip().upper() == "YES":
+                relevant = True
+                break
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
 
-    # --------------------------------------------------------
-    # GRADE EACH DOCUMENT
-    # --------------------------------------------------------
-
-    for document in documents:
-
-        context = document.page_content
-
-        prompt = GRADE_PROMPT.format(
-
-            question=question,
-
-            context=context
-        )
-
-        try:
-
-            result = call_openrouter(
-
-                prompt,
-
-                temperature=0,
-
-                max_tokens=10
-            )
-
-            response = result.get(
-                "answer",
-                ""
-            )
-
-            usage = result.get(
-                "usage",
-                empty_usage()
-            )
-
-            total_usage = add_usage(
-                total_usage,
-                usage
-            )
-
-            score = (
-                response
-                .strip()
-                .upper()
-            )
-
-            # Strict YES detection
-            if score == "YES":
-
-                relevant_count += 1
-
-        except Exception as e:
-
-            print(
-                f"Document grading failed: {e}"
-            )
-
-            continue
-
-    is_relevant = (
-        relevant_count > 0
-    )
-
-    return {
-
-        "documents_relevant":
-            is_relevant,
-
-        "usage":
-            total_usage
-    }
+    return {"documents_relevant": relevant, "usage": usage}
 
 
 # ============================================================
-# NODE 4
-# REWRITE QUESTION
+# NODE 4 - REWRITE QUESTION
 # ============================================================
 
 def rewrite_question(state):
-    """
-    Rewrite query when retrieved documents
-    are not sufficiently relevant.
-    """
-
-    question = state[
-        "question"
-    ]
-
-    rewrite_count = state.get(
-        "rewrite_count",
-        0
-    )
-
-    current_usage = state.get(
-        "usage",
-        empty_usage()
-    )
-
-    # --------------------------------------------------------
-    # PREVENT INFINITE LOOP
-    # --------------------------------------------------------
+    question = state["question"]
+    rewrite_count = state.get("rewrite_count", 0)
+    current_usage = state.get("usage", empty_usage())
 
     if rewrite_count >= 2:
-
         return {
-
             "search_query": question,
-
-            "rewrite_count":
-                rewrite_count,
-
-            "usage":
-                current_usage
+            "rewrite_count": rewrite_count,
+            "usage": current_usage,
         }
 
-    prompt = REWRITE_PROMPT.format(
-
-        question=question
-    )
-
     try:
-
         result = call_openrouter(
-
-            prompt,
-
+            REWRITE_PROMPT.format(question=question),
             temperature=0,
-
-            max_tokens=100
+            max_tokens=100,
+            timeout=REWRITE_TIMEOUT,
         )
-
-        rewritten = result.get(
-
-            "answer",
-
-            state.get(
-                "search_query",
-                question
-            )
-        )
-
-        usage = result.get(
-            "usage",
-            empty_usage()
-        )
-
-        total_usage = add_usage(
-
-            current_usage,
-
-            usage
-        )
+        rewritten = result.get("answer", state.get("search_query", question))
+        total_usage = add_usage(current_usage, result.get("usage", empty_usage()))
 
     except Exception as e:
-
-        print(
-            f"Query rewrite failed: {e}"
-        )
-
-        rewritten = state.get(
-            "search_query",
-            question
-        )
-
+        log.warning("Query rewrite failed: %s", e)
+        rewritten = state.get("search_query", question)
         total_usage = current_usage
 
     return {
-
-        "search_query":
-            rewritten.strip(),
-
-        "rewrite_count":
-            rewrite_count + 1,
-
-        "usage":
-            total_usage
+        "search_query": rewritten.strip(),
+        "rewrite_count": rewrite_count + 1,
+        "usage": total_usage,
     }
 
 
 # ============================================================
-# NODE 5
-# BUILD CONTEXT
+# NODE 5 - BUILD CONTEXT
+#   Original built an f-string with ~12 spaces of indentation on every line
+#   and "Not specified" for every empty field. That is a lot of wasted prompt
+#   tokens. This version emits only the fields that exist.
 # ============================================================
+
+_CONTEXT_FIELDS = (
+    ("Collection", "collection"),
+    ("Source", "source"),
+    ("Source Type", "source_type"),
+    ("Authority", "authority"),
+    ("Tradition", "tradition"),
+    ("Section", "section"),
+    ("Chapter", "chapter"),
+    ("Chapter Number", "chapter_number"),
+    ("Chapter Title", "chapter_title"),
+    ("Page Number", "page_number"),
+    ("Citation", "citation"),
+    ("Chunk ID", "chunk_id"),
+)
+
 
 def build_context(state):
+    documents = state.get("documents", [])
+    parts = []
 
-    documents = state.get(
-        "documents",
-        []
-    )
+    for index, document in enumerate(documents, start=1):
+        metadata = document.metadata or {}
 
-    context_parts = []
+        lines = [f"=== SOURCE {index} ==="]
+        for label, key in _CONTEXT_FIELDS:
+            value = metadata.get(key)
+            if value not in (None, "", "unknown"):
+                lines.append(f"{label}: {value}")
+        lines.append("--- CONTENT ---")
+        lines.append(document.page_content)
 
-    for index, document in enumerate(
+        parts.append("\n".join(lines))
 
-        documents,
-
-        start=1
-    ):
-
-        metadata = (
-            document.metadata
-            or {}
-        )
-
-        # ====================================================
-        # BASIC METADATA
-        # ====================================================
-
-        source = metadata.get(
-
-            "source",
-
-            "Unknown Source"
-        )
-
-        source_type = metadata.get(
-
-            "source_type",
-
-            "unknown"
-        )
-
-        collection = metadata.get(
-
-            "collection",
-
-            "unknown"
-        )
-
-        authority = metadata.get(
-
-            "authority",
-
-            "unknown"
-        )
-
-        citation = metadata.get(
-            "citation"
-        )
-
-        # ====================================================
-        # BUILD CONTEXT
-        # ====================================================
-
-        context_parts.append(
-
-            f"""
-            ==================================================
-            SOURCE {index}
-            ==================================================
-
-            Collection:
-            {collection}
-
-            Source:
-            {source}
-
-            Source Type:
-            {source_type}
-
-            Authority:
-            {authority}
-
-            Tradition:
-            {metadata.get("tradition", "Not specified")}
-
-            Section:
-            {metadata.get("section", "Not specified")}
-
-            Chapter:
-            {metadata.get("chapter", "Not specified")}
-
-            Chapter Number:
-            {metadata.get("chapter_number", "Not specified")}
-
-            Chapter Title:
-            {metadata.get("chapter_title", "Not specified")}
-
-            Page Number:
-            {metadata.get("page_number", "Not specified")}
-
-            Citation:
-            {citation if citation else "Not specified"}
-
-            Chunk ID:
-            {metadata.get("chunk_id", "Not specified")}
-
-
-            ---------------- CONTENT ----------------
-
-            {document.page_content}
-
-
-            ==================================================
-            """
-        )
-
-    context = "\n".join(
-        context_parts
-    )
-
-    return {
-
-        "context": context
-    }
+    return {"context": "\n\n".join(parts)}
 
 
 # ============================================================
 # DETAILED ANSWER DETECTOR
 # ============================================================
 
+_DETAILED_PHRASES = (
+    "answer in detail",
+    "explain in detail",
+    "explain this in detail",
+    "elaborate in detail",
+    "explain thoroughly",
+    "give a detailed explanation",
+    "provide a detailed answer",
+    "explain deeply",
+    "in great detail",
+    "answer thoroughly",
+    "detailed explanation",
+)
+
+
 def wants_detailed_answer(question: str) -> bool:
-    """
-    Detect whether the user explicitly requests
-    a detailed answer.
-    """
-
-    question = question.lower()
-
-    detailed_phrases = [
-
-        "answer in detail",
-
-        "explain in detail",
-
-        "explain this in detail",
-
-        "elaborate in detail",
-
-        "explain thoroughly",
-
-        "give a detailed explanation",
-
-        "provide a detailed answer",
-
-        "explain deeply",
-
-        "in great detail",
-
-        "answer thoroughly",
-
-        "detailed explanation"
-    ]
-
-    return any(
-
-        phrase in question
-
-        for phrase in detailed_phrases
-    )
+    q = question.lower()
+    return any(phrase in q for phrase in _DETAILED_PHRASES)
 
 
 # ============================================================
-# NODE 6
-# GENERATE ANSWER
+# NODE 6 - GENERATE ANSWER
 # ============================================================
 
 def generate_answer(state):
-    """
-    Generate the final answer.
-
-    Default:
-        max_tokens = 600
-
-    Explicit detailed request:
-        max_tokens = 2000
-    """
-
-    question = state[
-        "question"
-    ]
-
-    context = state.get(
-
-        "context",
-
-        ""
-    )
-
-    current_usage = state.get(
-
-        "usage",
-
-        empty_usage()
-    )
-
-    # --------------------------------------------------------
-    # NO CONTEXT
-    # --------------------------------------------------------
+    question = state["question"]
+    context = state.get("context", "")
+    current_usage = state.get("usage", empty_usage())
 
     if not context:
-
         return {
-
             "answer": (
-                "I could not find sufficient "
-                "information in the available sources "
-                "to answer this question."
+                "I could not find sufficient information in the available "
+                "sources to answer this question."
             ),
-
             "model": None,
-
-            "usage": current_usage
+            "usage": current_usage,
         }
 
-    # --------------------------------------------------------
-    # OUTPUT TOKEN CONTROL
-    # --------------------------------------------------------
+    max_tokens = 2000 if wants_detailed_answer(question) else 600
 
-    if wants_detailed_answer(question):
-
-        max_tokens = 2000
-
-    else:
-
-        max_tokens = 600
-
-    # --------------------------------------------------------
-    # BUILD ANSWER PROMPT
-    # --------------------------------------------------------
-
-    prompt = ANSWER_PROMPT.format(
-
-        question=question,
-
-        context=context
-    )
-
-    # --------------------------------------------------------
-    # CALL OPENROUTER
-    # --------------------------------------------------------
+    prompt = ANSWER_PROMPT.format(question=question, context=context)
 
     try:
-
         response = call_openrouter(
-
             prompt,
-
             temperature=0.2,
-
-            max_tokens=max_tokens
-        )
-
-        answer = response.get(
-
-            "answer",
-
-            "No answer generated."
-        )
-
-        model = response.get(
-
-            "model",
-
-            "Unknown"
-        )
-
-        final_usage = response.get(
-
-            "usage",
-
-            empty_usage()
-        )
-
-        # ----------------------------------------------------
-        # TOTAL AGENTIC WORKFLOW USAGE
-        # ----------------------------------------------------
-
-        total_usage = add_usage(
-
-            current_usage,
-
-            final_usage
+            max_tokens=max_tokens,
+            timeout=ANSWER_TIMEOUT,
         )
 
         return {
-
-            "answer": answer,
-
-            "model": model,
-
-            "usage": total_usage
+            "answer": response.get("answer", "No answer generated."),
+            "model": response.get("model", "Unknown"),
+            "usage": add_usage(current_usage, response.get("usage", empty_usage())),
         }
 
     except Exception as e:
-
-        print(
-            f"Answer generation failed: {e}"
-        )
-
+        log.warning("Answer generation failed: %s", e)
         return {
             "answer": (
                 "The language model could not generate an answer "
                 "at this time. Please try again."
             ),
             "model": None,
-            "usage": current_usage
+            "usage": current_usage,
         }

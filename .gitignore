@@ -17,3 +17,5 @@ embeddings.npy
 devanagari_ocr.py
 retriever.py
 vectorstore.py
+oldretriever.txt
+oldnodes.txt
