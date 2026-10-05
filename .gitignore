@@ -19,3 +19,4 @@ retriever.py
 vectorstore.py
 oldretriever.txt
 oldnodes.txt
+index.html

@@ -18,6 +18,7 @@ from typing import Any, Dict, List, Optional
 import dotenv
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from agent.graph import graph
@@ -47,6 +48,15 @@ app = FastAPI(
         "Cross-Encoder Reranking + Grounded Generation."
     ),
     version="1.0.0",
+)
+
+# <-- 2. Add CORS Middleware here
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins; replace with specific frontend URL in production
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows OPTIONS, POST, GET, etc.
+    allow_headers=["*"],
 )
 
 
