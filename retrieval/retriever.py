@@ -6,10 +6,11 @@ from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 
 from dotenv import load_dotenv
-from sentence_transformers import CrossEncoder
 from langchain_astradb import AstraDBVectorStore
 
-from embedder import SentenceTransformerEmbeddings
+# NOTE: no torch / sentence-transformers here. Production uses ONNX (fastembed)
+# or a hosted reranker API, so the process fits in 512 MB.
+from light_models import LightEmbedder, build_reranker
 
 load_dotenv(override=True)
 
@@ -42,24 +43,15 @@ class GaneshRetriever:
         upanishad_collection="upanishad",
         retrieve_k=10,
         top_k=6,
-        reranker_model=None,
         rerank_per_collection=5,
-        rerank_max_length=512,
         cache_size=128,
     ):
         self.retrieve_k = retrieve_k
         self.top_k = top_k
         self.rerank_per_collection = rerank_per_collection
 
-        reranker_model = reranker_model or os.getenv(
-            "RERANKER_MODEL", "BAAI/bge-reranker-v2-m3"
-        )
-
-        # ---------------- embedding model ----------------
-        self.embedder = SentenceTransformerEmbeddings(
-            model_name="all-MiniLM-L6-v2",
-            device=None,
-        )
+        # ---------------- embedding model (ONNX, same all-MiniLM-L6-v2 vectors) ----
+        self.embedder = LightEmbedder()
 
         # ---------------- vector stores ----------------
         token = os.getenv("ASTRA_DB_APPLICATION_TOKEN")
@@ -85,17 +77,8 @@ class GaneshRetriever:
 
         self._pool = ThreadPoolExecutor(max_workers=len(self.stores))
 
-        # ---------------- cross-encoder ----------------
-        import torch
-
-        device = "cuda" if torch.cuda.is_available() else None
-        self.reranker = CrossEncoder(
-            reranker_model,
-            max_length=rerank_max_length,
-            device=device,
-        )
-        if device == "cuda":
-            self.reranker.model.half()
+        # ---------------- reranker (hosted API or small ONNX model) ----------------
+        self.reranker = build_reranker()
 
         # ---------------- cache ----------------
         self._cache = OrderedDict()
@@ -103,7 +86,10 @@ class GaneshRetriever:
 
         # ---------------- warm-up ----------------
         self.embedder.embed_query("warmup")
-        self.reranker.predict([("warmup", "warmup")], show_progress_bar=False)
+        try:
+            self.reranker.score("warmup", ["warmup"])
+        except Exception as e:  # e.g. API key missing / network - don't block startup
+            log.warning("Reranker warm-up failed: %s", e)
 
     # =========================================================
     # SINGLE COLLECTION (vector already computed)
@@ -202,16 +188,24 @@ class GaneshRetriever:
             return []
 
         # 3. one cross-encoder pass
-        pairs = [(key, c["text"]) for c in candidates]
-        scores = self.reranker.predict(
-            pairs, batch_size=16, show_progress_bar=False
-        )
+        pairs = candidates  # (kept for the log line below)
+        try:
+            scores = self.reranker.score(key, [c["text"] for c in candidates])
+            for c, s in zip(candidates, scores):
+                c["reranker_score"] = float(s)
+            sort_key = lambda x: x["reranker_score"]
+        except Exception as e:
+            # Reranker API down / rate-limited: fall back to vector order instead of failing.
+            # reranker_score stays None, so grade_documents will use the LLM grading path.
+            log.warning("Rerank failed, using vector order: %s", e)
+            for c in candidates:
+                c["reranker_score"] = None
+            sort_key = lambda x: x["vector_score"]
 
-        for c, s in zip(candidates, scores):
-            c["reranker_score"] = float(s)
+        for c in candidates:
             c["authority_score"] = self.get_authority_score(c["metadata"])
 
-        candidates.sort(key=lambda x: x["reranker_score"], reverse=True)
+        candidates.sort(key=sort_key, reverse=True)
         final_candidates = candidates[: self.top_k]
         t_rerank = time.perf_counter()
 

@@ -22,8 +22,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from agent.graph import graph
-from embedder import SentenceTransformerEmbeddings
-from langchain_astradb import AstraDBVectorStore
+# NOTE: importing agent.graph (above) already builds ONE GaneshRetriever (embedder + reranker).
+# Reuse it here instead of loading a second copy of the embedding model.
+from agent.nodes import retriever
 
 
 # ============================================================
@@ -64,36 +65,13 @@ app.add_middleware(
 # LAZY SINGLETONS (replaces @st.cache_resource)
 # ============================================================
 
-_embedder: Optional[SentenceTransformerEmbeddings] = None
-_vector_store: Optional[AstraDBVectorStore] = None
 _initialized: bool = False
 _init_error: Optional[str] = None
 
 
-def get_embedder() -> SentenceTransformerEmbeddings:
-    """Create (or return cached) embedding model."""
-    global _embedder
-    if _embedder is None:
-        logger.info("Loading embedding model all-MiniLM-L6-v2...")
-        _embedder = SentenceTransformerEmbeddings(
-            model_name="all-MiniLM-L6-v2",
-            device=None,
-        )
-    return _embedder
-
-
-# Optional (disabled in Streamlit original, kept for parity)
-# def get_vector_store() -> AstraDBVectorStore:
-#     global _vector_store
-#     if _vector_store is None:
-#         embedder = get_embedder()
-#         _vector_store = AstraDBVectorStore(
-#             collection_name="puranas",
-#             embedding=embedder,
-#             token=os.getenv("ASTRA_DB_APPLICATION_TOKEN"),
-#             api_endpoint=os.getenv("ASTRA_DB_API_ENDPOINT"),
-#         )
-#     return _vector_store
+def get_embedder():
+    """Return the single shared embedder owned by the retriever (no second model load)."""
+    return retriever.embedder
 
 
 def initialize_system() -> bool:
@@ -317,9 +295,8 @@ def query(payload: QueryRequest) -> QueryResponse:
 @app.post("/reset-cache", tags=["admin"])
 def reset_cache() -> Dict[str, str]:
     """Clear cached singletons and re-initialize the RAG system."""
-    global _embedder, _vector_store, _initialized, _init_error
-    _embedder = None
-    _vector_store = None
+    global _initialized, _init_error
+    retriever._cache.clear()
     _initialized = False
     _init_error = None
     ok = initialize_system()
