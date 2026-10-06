@@ -22,9 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from agent.graph import graph
-# NOTE: importing agent.graph (above) already builds ONE GaneshRetriever (embedder + reranker).
-# Reuse it here instead of loading a second copy of the embedding model.
-from agent.nodes import retriever
+from agent.nodes import retriever  # single shared retriever (embedder + Astra stores + rerank client)
 
 
 # ============================================================
@@ -62,30 +60,34 @@ app.add_middleware(
 
 
 # ============================================================
-# LAZY SINGLETONS (replaces @st.cache_resource)
+# STARTUP / READINESS
 # ============================================================
+# The retriever (ONNX embedder + Astra stores + rerank API client) is created ONCE
+# when agent.nodes is imported. Do NOT build another embedder here: a second copy
+# of the model is wasted RAM on a 512 MB instance.
 
 _initialized: bool = False
 _init_error: Optional[str] = None
 
 
-def get_embedder():
-    """Return the single shared embedder owned by the retriever (no second model load)."""
-    return retriever.embedder
+def _rss_mb() -> float:
+    """Peak resident memory of this process in MB (Linux/macOS)."""
+    try:
+        import resource, sys
+        peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        return peak / (1024 * 1024) if sys.platform == "darwin" else peak / 1024
+    except Exception:
+        return -1.0
 
 
 def initialize_system() -> bool:
-    """
-    Initialize the RAG system once at startup.
-    Returns True on success, False on failure.
-    """
+    """Warm the retriever once at startup. Returns True on success."""
     global _initialized, _init_error
     try:
-        # Trigger embedder load (mirrors Streamlit's cached_resource warm-up)
-        get_embedder()
+        retriever.warmup()
         _initialized = True
         _init_error = None
-        logger.info("RAG system initialized.")
+        logger.info("RAG system initialized. Peak RSS: %.0f MB", _rss_mb())
         return True
     except Exception as e:
         _initialized = False
@@ -294,18 +296,9 @@ def query(payload: QueryRequest) -> QueryResponse:
 
 @app.post("/reset-cache", tags=["admin"])
 def reset_cache() -> Dict[str, str]:
-    """Clear cached singletons and re-initialize the RAG system."""
-    global _initialized, _init_error
-    retriever._cache.clear()
-    _initialized = False
-    _init_error = None
-    ok = initialize_system()
-    if not ok:
-        return JSONResponse(
-            status_code=500,
-            content={"status": "error", "detail": _init_error or "unknown"},
-        )
-    return {"status": "ok", "message": "Cache cleared and system re-initialized."}
+    """Clear the in-memory retrieval cache (models are NOT reloaded)."""
+    retriever.clear_cache()
+    return {"status": "ok", "message": "Retrieval cache cleared."}
 
 
 # ============================================================

@@ -21,9 +21,12 @@ import math
 import os
 import logging
 from typing import List
+import dotenv
 
 import requests
 from requests.adapters import HTTPAdapter
+
+dotenv.load_dotenv(override=True)
 
 log = logging.getLogger("ganesh-rag.models")
 

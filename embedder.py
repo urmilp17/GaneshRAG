@@ -1,143 +1,84 @@
-from sentence_transformers import SentenceTransformer
-import numpy as np
-from typing import List, Dict, Any
+"""
+Lightweight serving-time embedder.
 
-class SentenceTransformerEmbeddings():
-    """
-    A class to handle embeddings using Sentence Transformers.
-    """
-    
-    def __init__(self, model_name="all-MiniLM-L6-v2", device=None):
-        self.model = SentenceTransformer(
-            model_name,
-            device=device
+Same class name and public methods as before, so retriever.py / LangChain / any
+scripts keep working - but backed by fastembed (ONNX Runtime) instead of
+sentence-transformers + PyTorch.
+
+Why: `import torch` + sentence-transformers alone uses a few hundred MB of RAM,
+which blows a 512 MB Render instance. all-MiniLM-L6-v2 via ONNX is ~90 MB on disk
+and produces the same 384-d normalised vectors, so your existing Astra DB
+collections do NOT need to be re-embedded.
+"""
+
+import os
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+from fastembed import TextEmbedding
+
+
+class SentenceTransformerEmbeddings:
+    def __init__(
+        self,
+        model_name: str = "all-MiniLM-L6-v2",
+        device=None,                       # accepted for backward compatibility, ignored (CPU/ONNX)
+        cache_dir: Optional[str] = None,
+        threads: int = 1,                  # 1 thread = lower RAM and fine for short queries
+    ):
+        if "/" not in model_name:
+            model_name = f"sentence-transformers/{model_name}"
+
+        self.model_name = model_name
+        self.model = TextEmbedding(
+            model_name=model_name,
+            cache_dir=cache_dir or os.getenv("FASTEMBED_CACHE_DIR"),
+            threads=threads,
         )
-    
-    def embed_chunks_in_batches(self, chunks, batch_size: int = 32, show_progress: bool = True) -> List[np.ndarray]:
-        """
-        Embed chunks in batches.
-        
-        Args:
-            chunks: List of document chunks with page_content attribute
-            batch_size: Number of chunks per batch
-            show_progress: Whether to show progress bar
-        
-        Returns:
-            List of embedding vectors
-        """
-        # Extract texts from chunks
-        texts = [chunk.page_content for chunk in chunks]
-        
-        # Embed in batches
-        embeddings = self.model.encode(
-            texts,
-            batch_size=batch_size,
-            show_progress_bar=show_progress,
-            convert_to_numpy=True
-        )
-        
-        # Convert to list of numpy arrays
-        embeddings_list = [emb for emb in embeddings]
-        
-        print(f"Generated embeddings for {len(embeddings_list)} chunks")
-        print(f"Embedding shape: {embeddings.shape}")
-        
-        return embeddings_list
-    
-    def embed_texts(self, texts: List[str], batch_size: int = 32, show_progress: bool = True) -> List[np.ndarray]:
-        """
-        Embed a list of texts.
-        
-        Args:
-            texts: List of text strings
-            batch_size: Number of texts per batch
-            show_progress: Whether to show progress bar
-        
-        Returns:
-            List of embedding vectors
-        """
-        embeddings = self.model.encode(
-            texts,
-            batch_size=batch_size,
-            show_progress_bar=show_progress,
-            convert_to_numpy=True
-        )
-        return [emb for emb in embeddings]
-    
+
+    # ------------------------------------------------------------------
+    # internal
+    # ------------------------------------------------------------------
+    def _encode(self, texts: List[str], batch_size: int = 32) -> List[np.ndarray]:
+        return [
+            np.asarray(v, dtype=np.float32)
+            for v in self.model.embed(list(texts), batch_size=batch_size)
+        ]
+
+    # ------------------------------------------------------------------
+    # LangChain Embeddings interface (used by AstraDBVectorStore)
+    # ------------------------------------------------------------------
+    def embed_query(self, text: str) -> List[float]:
+        return self._encode([text])[0].tolist()
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        return [v.tolist() for v in self._encode(texts)]
+
+    # ------------------------------------------------------------------
+    # Original helper methods (kept so other scripts don't break)
+    # ------------------------------------------------------------------
     def embed_single_text(self, text: str) -> np.ndarray:
-        """
-        Embed a single text.
-        
-        Args:
-            text: Text string to embed
-        
-        Returns:
-            Embedding vector
-        """
-        return self.model.encode(text, convert_to_numpy=True)
-    
+        return self._encode([text])[0]
+
+    def embed_texts(self, texts: List[str], batch_size: int = 32, show_progress: bool = False) -> List[np.ndarray]:
+        return self._encode(texts, batch_size=batch_size)
+
+    def embed_chunks_in_batches(self, chunks, batch_size: int = 32, show_progress: bool = False) -> List[np.ndarray]:
+        texts = [chunk.page_content for chunk in chunks]
+        return self._encode(texts, batch_size=batch_size)
+
     def create_embeddings_with_metadata(self, chunks, embeddings_list: List[np.ndarray]) -> List[Dict[str, Any]]:
-        """
-        Create a list of dictionaries with text, embeddings, and metadata.
-        
-        Args:
-            chunks: List of document chunks
-            embeddings_list: List of embedding vectors
-        
-        Returns:
-            List of dictionaries containing text, embedding, and metadata
-        """
-        embedded_docs = []
-        
-        for chunk, embedding in zip(chunks, embeddings_list):
-            if embedding is not None:
-                embedded_docs.append({
-                    "text": chunk.page_content,
-                    "embedding": embedding,
-                    "metadata": chunk.metadata
-                })
-        
-        print(f"Created {len(embedded_docs)} embedded documents with metadata")
-        return embedded_docs
-    
+        return [
+            {"text": c.page_content, "embedding": e, "metadata": c.metadata}
+            for c, e in zip(chunks, embeddings_list)
+            if e is not None
+        ]
+
     def get_embedding_dimension(self) -> int:
-        """
-        Get the dimension of embeddings produced by the model.
-        
-        Returns:
-            Embedding dimension
-        """
-        return self.model.get_embedding_dimension()
-    
+        return len(self._encode(["dimension probe"])[0])
+
     def save_embeddings(self, embedded_documents: List[Dict[str, Any]], filepath: str = "embeddings.npy"):
-        """
-        Save embeddings to a numpy file.
-        
-        Args:
-            embedded_documents: List of embedded documents
-            filepath: Path to save the embeddings
-        """
-        embeddings = [doc["embedding"] for doc in embedded_documents]
-        embeddings_array = np.array(embeddings)
-        np.save(filepath, embeddings_array)
-        print(f"Saved {len(embeddings)} embeddings to {filepath}")
-    
+        np.save(filepath, np.array([d["embedding"] for d in embedded_documents]))
+
     def load_embeddings(self, filepath: str) -> np.ndarray:
-        """
-        Load embeddings from a numpy file.
-        
-        Args:
-            filepath: Path to the embeddings file
-        
-        Returns:
-            Numpy array of embeddings
-        """
         return np.load(filepath)
-    
-    def embed_documents(self, texts):
-        embeddings = self.model.encode(texts)
-        return np.asarray(embeddings).tolist()
-    
-    def embed_query(self, text):
-        embedding = self.model.encode(text)
-        return np.asarray(embedding).tolist()
