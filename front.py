@@ -3,16 +3,18 @@ import html
 import streamlit as st
 import dotenv
 
-from agent.graph import graph
-from embedder import SentenceTransformerEmbeddings
-from langchain_astradb import AstraDBVectorStore
-
-
-# ============================================================
-# ENVIRONMENT
-# ============================================================
-
+# The Agentic RAG graph owns the retriever.  The new retriever searches:
+# puranas, research, iconography, rahasya, sahastranaam and upanishad(s).
 dotenv.load_dotenv(override=True)
+
+try:
+    from agent.graph import graph
+    initialized = True
+    initialization_error = None
+except Exception as e:
+    graph = None
+    initialized = False
+    initialization_error = str(e)
 
 
 # ============================================================
@@ -23,7 +25,7 @@ st.set_page_config(
     page_title="Ganesh Tattvagyan RAG",
     page_icon="🕉️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 
@@ -34,24 +36,17 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-
     :root {
         --saffron: #FF7722;
-        --saffron-light: #FF8F3F;
         --saffron-dark: #E65A00;
-        --saffron-glow: rgba(255, 119, 34, 0.18);
     }
-
-    /* ==============================
-       Main Header
-       ============================== */
 
     .main-header {
         font-size: 2.5rem;
         font-weight: 700;
         color: var(--saffron) !important;
         margin-bottom: 0.4rem;
-        text-shadow: 0 2px 10px rgba(255, 119, 34, 0.2);
+        text-shadow: 0 2px 10px rgba(255, 119, 34, 0.20);
     }
 
     .subtitle {
@@ -59,264 +54,334 @@ st.markdown(
         margin-bottom: 1.5rem;
     }
 
-
-    /* ==============================
-       ANSWER BOX
-       ============================== */
-
     .answer-box {
         background-color: var(--secondary-background-color) !important;
-
         color: var(--text-color) !important;
-
         padding: 1.5rem;
-
         border-radius: 10px;
-
         border-left: 5px solid var(--saffron) !important;
-
         margin: 1rem 0;
-
         line-height: 1.75;
-
         font-size: 1rem;
-
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
 
-
-    /* ==============================
-       MODEL INFO
-       ============================== */
-
     .model-info {
         background-color: var(--secondary-background-color) !important;
-
         color: var(--text-color) !important;
-
         padding: 0.8rem;
-
         border-radius: 8px;
-
         margin-top: 0.5rem;
-
         border: 1px solid rgba(255, 119, 34, 0.35) !important;
     }
 
-
-    /* ==============================
-       CONTEXT BOX
-       ============================== */
-
     .context-box {
         background-color: var(--secondary-background-color) !important;
-
         color: var(--text-color) !important;
-
         padding: 1rem;
-
         border-radius: 8px;
-
         border: 1px solid rgba(255, 119, 34, 0.25) !important;
-
         margin: 0.5rem 0;
-
         font-family: monospace;
-
         white-space: pre-wrap;
-
         word-wrap: break-word;
-
         line-height: 1.6;
     }
-
-
-    /* ==============================
-       SOURCE CARD
-       ============================== */
 
     .source-card {
         background-color: var(--secondary-background-color) !important;
-
         color: var(--text-color) !important;
-
         padding: 1rem;
-
         border-radius: 8px;
-
         border-left: 4px solid var(--saffron);
-
         margin: 0.7rem 0;
-
         line-height: 1.6;
     }
 
-
     .source-title {
         color: var(--saffron) !important;
-
         font-size: 1.05rem;
-
         font-weight: 700;
-
         margin-bottom: 0.5rem;
     }
-
 
     .metadata-label {
         font-weight: 600;
     }
 
-
-    /* ==============================
-       TEXT INPUT
-       ============================== */
-
     .stTextInput > div > div > input {
         font-size: 1.1rem;
-
         border-color: var(--saffron) !important;
     }
-
 
     .stTextInput > div > div > input:focus {
         border-color: var(--saffron) !important;
-
-        box-shadow:
-            0 0 0 2px
-            rgba(255, 119, 34, 0.3) !important;
+        box-shadow: 0 0 0 2px rgba(255, 119, 34, 0.30) !important;
     }
-
-
-    /* ==============================
-       BUTTON
-       ============================== */
 
     .stButton button {
         background-color: var(--saffron) !important;
-
         color: white !important;
-
         border: none !important;
-
         transition: all 0.3s ease !important;
     }
 
-
     .stButton button:hover {
         background-color: var(--saffron-dark) !important;
-
         transform: translateY(-2px) !important;
-
-        box-shadow:
-            0 4px 12px
-            rgba(255, 119, 34, 0.4) !important;
+        box-shadow: 0 4px 12px rgba(255, 119, 34, 0.40) !important;
     }
-
-
-    /* ==============================
-       DIVIDERS
-       ============================== */
 
     hr {
-        border-color:
-            rgba(255, 119, 34, 0.3) !important;
+        border-color: rgba(255, 119, 34, 0.30) !important;
     }
-
-
-    /* ==============================
-       ALERTS
-       ============================== */
 
     .stAlert {
-        border-left-color:
-            var(--saffron) !important;
+        border-left-color: var(--saffron) !important;
     }
-
 
     .stAlert svg {
-        fill:
-            var(--saffron) !important;
+        fill: var(--saffron) !important;
     }
-
     </style>
     """,
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 
 # ============================================================
-# CREATE EMBEDDING MODEL
+# HELPERS
 # ============================================================
 
-@st.cache_resource(show_spinner="Loading embedding model...")
-def get_embedder():
+def safe_value(value, default="Not specified"):
+    """Return a display-safe value for optional metadata."""
+    if value is None or value == "" or value == -1:
+        return default
+    return value
 
-    return SentenceTransformerEmbeddings(
-        model_name="all-MiniLM-L6-v2",
-        device=None,
+
+def format_score(value):
+    if value is None:
+        return "N/A"
+    try:
+        return f"{float(value):.6f}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def display_ranked_sources(retrieval_data, show_scores=True):
+    """Display final candidates returned by the new retriever/graph."""
+    if not retrieval_data:
+        st.info("No ranked source information available.")
+        return
+
+    for index, item in enumerate(retrieval_data, start=1):
+        source = safe_value(item.get("source"), "Unknown Source")
+        collection = safe_value(item.get("collection"), "Unknown Collection")
+        citation = item.get("citation")
+        source_type = item.get("source_type")
+        authority = item.get("authority")
+        page_number = item.get("page_number")
+        chunk_id = item.get("chunk_id")
+
+        with st.expander(
+            f"#{index} — {source} • {collection}",
+            expanded=(index == 1),
+        ):
+            st.markdown(
+                f"""
+                <div class="source-card">
+                    <div class="source-title">Source #{index}</div>
+                    <b>Collection:</b> {html.escape(str(collection))}<br><br>
+                    <b>Source:</b> {html.escape(str(source))}<br><br>
+                    <b>Source Type:</b> {html.escape(str(safe_value(source_type)))}<br><br>
+                    <b>Authority:</b> {html.escape(str(safe_value(authority)))}<br><br>
+                    <b>Page:</b> {html.escape(str(safe_value(page_number)))}<br><br>
+                    <b>Citation:</b> {html.escape(str(safe_value(citation)))}<br><br>
+                    <b>Chunk ID:</b> <code>{html.escape(str(safe_value(chunk_id)))}</code>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            if show_scores:
+                score_col1, score_col2, score_col3 = st.columns(3)
+                with score_col1:
+                    st.metric("Vector Rank", safe_value(item.get("vector_rank"), "N/A"))
+                with score_col2:
+                    st.metric("Vector Score", format_score(item.get("vector_score")))
+                with score_col3:
+                    st.metric("Reranker Score", format_score(item.get("reranker_score")))
+
+
+def display_context(context_data):
+    """Safely display the exact context supplied to the LLM."""
+    if context_data is None:
+        st.info("No context data available.")
+        return
+
+    if isinstance(context_data, str):
+        st.markdown(
+            '<div class="context-box">'
+            + html.escape(context_data)
+            + '</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    if isinstance(context_data, list):
+        for index, item in enumerate(context_data, start=1):
+            with st.expander(f"📄 Context {index}"):
+                if isinstance(item, dict):
+                    for key, value in item.items():
+                        st.markdown(f"**{key}:**")
+                        st.markdown(
+                            '<div class="context-box">'
+                            + html.escape(str(value))
+                            + '</div>',
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    st.markdown(
+                        '<div class="context-box">'
+                        + html.escape(str(item))
+                        + '</div>',
+                        unsafe_allow_html=True,
+                    )
+        return
+
+    if isinstance(context_data, dict):
+        for key, value in context_data.items():
+            st.markdown(f"**{key}:**")
+            st.markdown(
+                '<div class="context-box">'
+                + html.escape(str(value))
+                + '</div>',
+                unsafe_allow_html=True,
+            )
+        return
+
+    st.markdown(
+        '<div class="context-box">'
+        + html.escape(str(context_data))
+        + '</div>',
+        unsafe_allow_html=True,
     )
 
 
-# ============================================================
-# CREATE ASTRA VECTOR STORE
-# ============================================================
+def display_document_metadata(documents):
+    """Display all useful metadata from the final LangChain Documents."""
+    if not documents:
+        st.info("No document metadata available.")
+        return
 
-# @st.cache_resource(show_spinner="Connecting to Astra DB...")
-# def get_vector_store():
+    # These are intentionally ordered for readability. Any additional
+    # metadata fields are displayed afterwards.
+    preferred_fields = [
+        "collection",
+        "source",
+        "source_name",
+        "source_type",
+        "document_type",
+        "authority",
+        "tradition",
+        "upanishad",
+        "upanishad_short_name",
+        "author",
+        "commentary",
+        "commentator",
+        "form_name",
+        "name",
+        "name_devanagari",
+        "section",
+        "chapter",
+        "chapter_number",
+        "chapter_title",
+        "mantra_number",
+        "shloka_number",
+        "page_number",
+        "citation",
+        "file_name",
+        "file_path",
+        "chunk_id",
+        "chunk_index",
+        "total_chunks",
+    ]
 
-#     embedder = get_embedder()
+    for index, document in enumerate(documents, start=1):
+        if hasattr(document, "metadata"):
+            metadata = document.metadata or {}
+        elif isinstance(document, dict):
+            metadata = document.get("metadata", {}) or {}
+        else:
+            metadata = {}
 
-#     vector_store = AstraDBVectorStore(
-#         collection_name="puranas",
+        if (
+            isinstance(metadata, dict)
+            and isinstance(metadata.get("metadata"), dict)
+        ):
+            metadata = metadata["metadata"]
 
-#         embedding=embedder,
+        source = metadata.get("source", "Unknown Source")
 
-#         token=os.getenv(
-#             "ASTRA_DB_APPLICATION_TOKEN"
-#         ),
+        with st.expander(f"📖 {index}. {source}"):
+            shown = set()
 
-#         api_endpoint=os.getenv(
-#             "ASTRA_DB_API_ENDPOINT"
-#         ),
-#     )
+            for key in preferred_fields:
+                if key not in metadata:
+                    continue
+                value = metadata.get(key)
+                if value is None or value == "" or value == -1:
+                    continue
 
-#     return vector_store
+                shown.add(key)
+                label = key.replace("_", " ").title()
+                st.markdown(f"**{label}:** {value}")
 
-
-# ============================================================
-# CREATE AUGMENTATION SYSTEM
-# ============================================================
-
-# @st.cache_resource(show_spinner="Loading RAG and reranker...")
-# def get_augmentation():
-
-#     vector_store = get_vector_store()
-
-#     return Augmentation(
-#         vector_store=vector_store
-#     )
+            # Show any newly added metadata fields automatically.
+            for key, value in metadata.items():
+                if key in shown or key in {"metadata"}:
+                    continue
+                if value is None or value == "" or value == -1:
+                    continue
+                label = key.replace("_", " ").title()
+                st.markdown(f"**{label}:** {value}")
 
 
-# ============================================================
-# INITIALIZE SYSTEM
-# ============================================================
+def display_usage(usage):
+    """Display aggregated OpenRouter usage from the Agentic RAG graph."""
+    if not usage:
+        st.info("No token usage information returned.")
+        return
 
-try:
+    prompt_tokens = int(usage.get("prompt_tokens", 0) or 0)
+    completion_tokens = int(usage.get("completion_tokens", 0) or 0)
+    total_tokens = int(usage.get("total_tokens", 0) or 0)
+    reasoning_tokens = int(usage.get("reasoning_tokens", 0) or 0)
+    cached_tokens = int(usage.get("cached_tokens", 0) or 0)
 
-    # augmentation = get_augmentation()
+    raw_cost = usage.get("cost", 0) or 0
+    try:
+        cost = float(raw_cost)
+    except (TypeError, ValueError):
+        cost = 0.0
 
-    initialized = True
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("📥 Input Tokens", f"{prompt_tokens:,}")
+    with col2:
+        st.metric("📤 Output Tokens", f"{completion_tokens:,}")
+    with col3:
+        st.metric("🔢 Total Tokens", f"{total_tokens:,}")
+    with col4:
+        st.metric("💰 Cost", f"${cost:.6f}")
 
-except Exception as e:
-
-    augmentation = None
-
-    initialized = False
-
-    st.error(
-        f"⚠️ Error initializing RAG system: {str(e)}"
-    )
+    with st.expander("🔍 Detailed Usage Information"):
+        detail_col1, detail_col2 = st.columns(2)
+        with detail_col1:
+            st.metric("🧠 Reasoning Tokens", f"{reasoning_tokens:,}")
+        with detail_col2:
+            st.metric("⚡ Cached Tokens", f"{cached_tokens:,}")
 
 
 # ============================================================
@@ -324,22 +389,14 @@ except Exception as e:
 # ============================================================
 
 st.markdown(
-    """
-    <div class="main-header">
-        🕉️ Ganesh Tattvagyan RAG
-    </div>
-    """,
-    unsafe_allow_html=True
+    '<div class="main-header">🕉️ Ganesh Tattvagyan RAG</div>',
+    unsafe_allow_html=True,
 )
 
 st.markdown(
-    """
-    <div class="subtitle">
-        Ask questions and receive source-grounded answers
-        from the Ganesh scripture knowledge base.
-    </div>
-    """,
-    unsafe_allow_html=True
+    '<div class="subtitle">Ask questions and receive source-grounded answers '
+    'from the Ganesh scripture knowledge base.</div>',
+    unsafe_allow_html=True,
 )
 
 
@@ -348,210 +405,103 @@ st.markdown(
 # ============================================================
 
 with st.sidebar:
+    st.header("⚙️ Agentic RAG Configuration")
 
-    st.header("⚙️ Retrieval Configuration")
-
-
-    # --------------------------------------------------------
-    # Initial vector retrieval
-    # --------------------------------------------------------
-
-    retrieve_k = st.slider(
-        "Initial Retrieval K",
-
-        min_value=5,
-
-        max_value=30,
-
-        value=15,
-
-        step=1,
-
-        help=(
-            "Number of chunks retrieved from Astra DB "
-            "before Cross-Encoder reranking."
-        )
-    )
-
-
-    # --------------------------------------------------------
-    # Final reranked contexts
-    # --------------------------------------------------------
-
-    top_k = st.slider(
-        "Final Reranked Top K",
-
-        min_value=1,
-
-        max_value=10,
-
-        value=5,
-
-        step=1,
-
-        help=(
-            "Number of highest-ranked chunks passed "
-            "to the language model after reranking."
-        )
-    )
-
-
-    # --------------------------------------------------------
-    # Temperature
-    # --------------------------------------------------------
-
-    temperature = st.slider(
-        "LLM Temperature",
-
-        min_value=0.0,
-
-        max_value=1.0,
-
-        value=0.2,
-
-        step=0.05,
-
-        help=(
-            "Lower values make the response more "
-            "deterministic and conservative."
-        )
-    )
-
-
-    st.divider()
-
-
-    # ========================================================
-    # DISPLAY OPTIONS
-    # ========================================================
-
-    st.header("🖥️ Display Options")
-
-
-    show_sources = st.checkbox(
-        "Show ranked sources",
-
-        value=True,
-
-        help=(
-            "Display the final sources selected by "
-            "the Cross-Encoder reranker."
-        )
-    )
-
-
-    show_scores = st.checkbox(
-        "Show retrieval scores",
-
-        value=False,
-
-        help=(
-            "Display vector and reranker scores "
-            "for debugging and evaluation."
-        )
-    )
-
-
-    show_raw_context = st.checkbox(
-        "Show raw context",
-
-        value=False,
-
-        help=(
-            "Display the exact context supplied "
-            "to the language model."
-        )
-    )
-    
-    show_token_usage = st.checkbox(
-        "Show token usage",
-        value=True,
-        help=(
-            "Display input and output tokens consumed "
-            "by the language model."
-        )
-    )
-
-
-    st.divider()
-
-
-    # ========================================================
-    # SYSTEM INFORMATION
-    # ========================================================
-
-    st.header("📚 Knowledge Base")
-
-
+    st.markdown("### 🔎 Retrieval Pipeline")
     st.markdown(
         """
-        **Database:** `ganesa_data`
+        **1. Query** → **2. Vector Retrieval** → **3. OpenRouter Reranking**  
+        **4. Document Grading** → **5. Query Rewrite if needed**  
+        **6. Grounded Generation**
+        """
+    )
 
+    st.info(
+        "The retrieval parameters are controlled by the backend "
+        "`GaneshRetriever` used by the Agentic RAG graph."
+    )
+
+    st.markdown("### 📚 Knowledge Base")
+    st.markdown(
+        """
+        **Database:** `ganesa_data`  
         **Keyspace:** `default_keyspace`
 
-        **Collection:** `puranas, research`
+        **Collections:**
+        - `puranas`
+        - `research`
+        - `iconography`
+        - `rahasya`
+        - `sahastranaam`
+        - `upanishads`
 
-        **Embedding:** `all-MiniLM-L6-v2`
-
-        **Reranker:** `BAAI/bge-reranker-v2-m3`
+        **Embedding:** `all-MiniLM-L6-v2`  
+        **Reranking:** OpenRouter `/rerank` API
         """
     )
 
+    st.markdown("### 🧠 Retrieval Settings")
+    st.caption("Current backend defaults from the new retriever:")
+    st.code(
+        "retrieve_k = 10\n"
+        "rerank_per_collection = 5\n"
+        "top_k = 6",
+        language="python",
+    )
+
+    st.markdown("### 🤖 Reranker Models")
+    rerank_models = [
+        m.strip()
+        for m in os.getenv(
+            "RERANK_MODELS",
+            "cohere/rerank-v3.5,voyageai/rerank-2.5-lite,qwen/qwen3-reranker-8b",
+        ).split(",")
+        if m.strip()
+    ]
+    for model_name in rerank_models:
+        st.caption(f"• `{model_name}`")
 
     st.divider()
 
+    st.header("🖥️ Display Options")
+    show_sources = st.checkbox("Show ranked sources", value=True)
+    show_scores = st.checkbox("Show retrieval scores", value=False)
+    show_raw_context = st.checkbox("Show raw context", value=False)
+    show_metadata = st.checkbox("Show detailed metadata", value=True)
+    show_token_usage = st.checkbox("Show token usage", value=True)
 
-    # ========================================================
-    # SYSTEM STATUS
-    # ========================================================
+    st.divider()
 
     st.header("📊 System Status")
-
-
     if initialized:
-
-        st.success(
-            "✅ RAG system initialized"
-        )
-
-        st.info(
-            "🔹 Vector retrieval + reranking ready"
-        )
-
+        st.success("✅ Agentic RAG graph initialized")
+        st.info("🔹 6-collection retrieval + OpenRouter reranking ready")
     else:
-
-        st.error(
-            "❌ System initialization failed"
-        )
-
+        st.error("❌ Agentic RAG graph initialization failed")
+        if initialization_error:
+            st.code(initialization_error)
 
     st.divider()
 
-
-    # ========================================================
-    # ABOUT
-    # ========================================================
-
     st.header("ℹ️ About")
-
     st.markdown(
         """
-        This system uses a two-stage RAG pipeline:
+        This system uses an Agentic RAG pipeline:
 
-        **1. Vector Retrieval**
+        **1. Vector Retrieval**  
+        Astra DB collections are searched in parallel using one embedded query.
 
-        Astra DB retrieves semantically similar
-        chunks.
+        **2. OpenRouter Reranking**  
+        Candidate passages are reranked through the OpenRouter rerank API.
 
-        **2. Cross-Encoder Reranking**
+        **3. Document Grading**  
+        Retrieved documents are checked for relevance.
 
-        A reranker evaluates query-document
-        relevance more precisely.
+        **4. Query Rewriting**  
+        If retrieval is insufficient, the query can be rewritten and searched again.
 
-        **3. Grounded Generation**
-
-        The final selected sources are provided
-        to the language model for answer generation.
+        **5. Grounded Generation**  
+        The final answer is generated from the selected source context.
         """
     )
 
@@ -560,907 +510,187 @@ with st.sidebar:
 # QUERY AREA
 # ============================================================
 
-col1, col2 = st.columns(
-    [3, 1]
-)
+with st.form("query_form", clear_on_submit=False):
+    col1, col2 = st.columns([3, 1])
 
-
-with col1:
-
-    query = st.text_input(
-        "💬 Enter your question:",
-
-        placeholder=(
-            "e.g., What is Ganesh Hridayam?"
-        ),
-
-        help=(
-            "Type your question and press Enter "
-            "or click Search."
-        )
-    )
-
-
-with col2:
-
-    st.write("")
-
-    st.write("")
-
-    search_button = st.button(
-        "🚀 Search",
-
-        type="primary",
-
-        use_container_width=True
-    )
-
-
-# ============================================================
-# DISPLAY SOURCES
-# ============================================================
-
-def display_ranked_sources(
-    retrieval_data
-):
-    """
-    Display final reranked retrieval results.
-
-    Expected structure:
-
-        [
-            {
-                vector_rank,
-                vector_score,
-                reranker_score,
-                source,
-                page_number,
-                chunk_id
-            }
-        ]
-    """
-
-    if not retrieval_data:
-
-        st.info(
-            "No ranked source information available."
+    with col1:
+        query = st.text_input(
+            "💬 Enter your question:",
+            placeholder="e.g., Who is Herambha?",
+            help="Ask a question about the Ganesha knowledge base.",
         )
 
-        return
-
-
-    for index, item in enumerate(
-        retrieval_data,
-        start=1
-    ):
-
-        source = item.get(
-            "source",
-            "Unknown Source"
+    with col2:
+        st.write("")
+        st.write("")
+        search_button = st.form_submit_button(
+            "🚀 Search",
+            type="primary",
+            use_container_width=True,
         )
-
-        page_number = item.get(
-            "page_number"
-        )
-
-        vector_rank = item.get(
-            "vector_rank"
-        )
-
-        vector_score = item.get(
-            "vector_score"
-        )
-
-        reranker_score = item.get(
-            "reranker_score"
-        )
-
-        chunk_id = item.get(
-            "chunk_id"
-        )
-
-
-        # ----------------------------------------------------
-        # Page display
-        # ----------------------------------------------------
-
-        page_text = ""
-
-        if page_number is not None:
-
-            page_text = (
-                f" • Page {page_number}"
-            )
-
-
-        with st.expander(
-            f"#{index} — {source}{page_text}",
-            expanded=(index == 1)
-        ):
-
-            st.markdown(
-                f"""
-                <div class="source-card">
-
-                    <div class="source-title">
-                        Source #{index}
-                    </div>
-
-                    <b>Source:</b>
-                    {html.escape(str(source))}
-
-                    <br><br>
-
-                    <b>Page:</b>
-                    {html.escape(
-                        str(page_number)
-                        if page_number is not None
-                        else "Not specified"
-                    )}
-
-                    <br><br>
-
-                    <b>Chunk ID:</b>
-                    <code>
-                    {html.escape(
-                        str(chunk_id)
-                        if chunk_id
-                        else "Not specified"
-                    )}
-                    </code>
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-            if show_scores:
-
-                st.markdown(
-                    "### 📊 Retrieval Scores"
-                )
-
-
-                score_col1, score_col2, score_col3 = (
-                    st.columns(3)
-                )
-
-
-                with score_col1:
-
-                    st.metric(
-                        "Vector Rank",
-
-                        (
-                            str(vector_rank)
-                            if vector_rank is not None
-                            else "N/A"
-                        )
-                    )
-
-
-                with score_col2:
-
-                    if vector_score is not None:
-
-                        st.metric(
-                            "Vector Score",
-
-                            f"{float(vector_score):.6f}"
-                        )
-
-                    else:
-
-                        st.metric(
-                            "Vector Score",
-                            "N/A"
-                        )
-
-
-                with score_col3:
-
-                    if reranker_score is not None:
-
-                        st.metric(
-                            "Reranker Score",
-
-                            f"{float(reranker_score):.6f}"
-                        )
-
-                    else:
-
-                        st.metric(
-                            "Reranker Score",
-                            "N/A"
-                        )
-
-
-# ============================================================
-# DISPLAY CONTEXT
-# ============================================================
-
-def display_context(
-    context_data
-):
-    """
-    Safely display retrieved context.
-    """
-
-    if context_data is None:
-
-        st.info(
-            "No context data available."
-        )
-
-        return
-
-
-    if isinstance(
-        context_data,
-        str
-    ):
-
-        st.markdown(
-            '<div class="context-box">'
-            + html.escape(context_data)
-            + '</div>',
-            unsafe_allow_html=True
-        )
-
-        return
-
-
-    if isinstance(
-        context_data,
-        list
-    ):
-
-        for index, item in enumerate(
-            context_data,
-            start=1
-        ):
-
-            with st.expander(
-                f"📄 Context {index}"
-            ):
-
-                if isinstance(
-                    item,
-                    dict
-                ):
-
-                    for key, value in (
-                        item.items()
-                    ):
-
-                        st.markdown(
-                            f"**{key}:**"
-                        )
-
-                        st.markdown(
-                            '<div class="context-box">'
-                            + html.escape(
-                                str(value)
-                            )
-                            + '</div>',
-                            unsafe_allow_html=True
-                        )
-
-                else:
-
-                    st.markdown(
-                        '<div class="context-box">'
-                        + html.escape(
-                            str(item)
-                        )
-                        + '</div>',
-                        unsafe_allow_html=True
-                    )
-
-        return
-
-
-    if isinstance(
-        context_data,
-        dict
-    ):
-
-        for key, value in (
-            context_data.items()
-        ):
-
-            st.markdown(
-                f"**{key}:**"
-            )
-
-            st.markdown(
-                '<div class="context-box">'
-                + html.escape(
-                    str(value)
-                )
-                + '</div>',
-                unsafe_allow_html=True
-            )
-
-        return
-
-
-    st.markdown(
-        '<div class="context-box">'
-        + html.escape(
-            str(context_data)
-        )
-        + '</div>',
-        unsafe_allow_html=True
-    )
-
-
-# ============================================================
-# DISPLAY METADATA
-# ============================================================
-
-def display_document_metadata(
-    documents
-):
-    """
-    Display metadata from the final reranked LangChain
-    documents.
-    """
-
-    if not documents:
-
-        st.info(
-            "No document metadata available."
-        )
-
-        return
-
-
-    for index, document in enumerate(
-        documents,
-        start=1
-    ):
-
-        if hasattr(
-            document,
-            "metadata"
-        ):
-
-            metadata = (
-                document.metadata
-                or {}
-            )
-
-        elif isinstance(
-            document,
-            dict
-        ):
-
-            metadata = document.get(
-                "metadata",
-                {}
-            )
-
-        else:
-
-            metadata = {}
-
-
-        # Handle nested metadata
-
-        if (
-            isinstance(
-                metadata,
-                dict
-            )
-            and
-            isinstance(
-                metadata.get(
-                    "metadata"
-                ),
-                dict
-            )
-        ):
-
-            metadata = metadata[
-                "metadata"
-            ]
-
-
-        source = metadata.get(
-            "source",
-            "Unknown Source"
-        )
-
-        source_type = metadata.get(
-            "source_type",
-            "Unknown"
-        )
-
-        authority = metadata.get(
-            "authority",
-            "Unknown"
-        )
-
-        section = metadata.get(
-            "section"
-        )
-
-        chapter = metadata.get(
-            "chapter"
-        )
-
-        chapter_number = metadata.get(
-            "chapter_number"
-        )
-
-        chapter_title = metadata.get(
-            "chapter_title"
-        )
-
-        page_number = metadata.get(
-            "page_number"
-        )
-
-        citation = metadata.get(
-            "citation"
-        )
-
-
-        with st.expander(
-            f"📖 {index}. {source}"
-        ):
-
-            st.markdown(
-                f"**Source Type:** "
-                f"`{source_type}`"
-            )
-
-            st.markdown(
-                f"**Authority:** "
-                f"`{authority}`"
-            )
-
-
-            if section:
-
-                st.markdown(
-                    f"**Section:** {section}"
-                )
-
-
-            if chapter:
-
-                st.markdown(
-                    f"**Chapter:** {chapter}"
-                )
-
-
-            if chapter_number is not None:
-
-                st.markdown(
-                    f"**Chapter Number:** "
-                    f"{chapter_number}"
-                )
-
-
-            if chapter_title:
-
-                st.markdown(
-                    f"**Chapter Title:** "
-                    f"{chapter_title}"
-                )
-
-
-            if page_number is not None:
-
-                st.markdown(
-                    f"**Page:** "
-                    f"{page_number}"
-                )
-
-
-            if citation:
-
-                st.markdown(
-                    f"**Citation:** "
-                    f"`{citation}`"
-                )
 
 
 # ============================================================
 # PROCESS QUERY
 # ============================================================
 
-if (
-    search_button
-    or query
-) and query.strip():
+if search_button:
+    if not query.strip():
+        st.warning("Please enter a question first.")
 
-    if not initialized:
-
+    elif not initialized or graph is None:
         st.error(
-            "⚠️ RAG system is not initialized. "
-            "Please check the configuration."
+            "⚠️ The Agentic RAG graph is not initialized. "
+            "Please check your environment variables and backend configuration."
         )
 
     else:
-
-        with st.spinner(
-            "🔍 Retrieving, reranking and generating..."
-        ):
-
+        with st.spinner("🔍 Retrieving, reranking, grading and generating..."):
             try:
-
-                # ============================================
-                # RUN RAG
-                # ============================================
-
                 result = graph.invoke(
                     {
-                        "question": query,
-                        "rewrite_count": 0
+                        "question": query.strip(),
+                        "rewrite_count": 0,
                     }
                 )
 
-
                 st.divider()
 
-                
-                # ============================================
+                # ====================================================
                 # ANSWER
-                # ============================================
+                # ====================================================
 
-                st.subheader(
-                    "📝 Answer"
-                )
-
+                st.subheader("📝 Answer")
 
                 answer = result.get(
                     "answer",
-                    "No answer generated."
+                    "No answer generated.",
                 )
-
-
-                # IMPORTANT:
-                #
-                # Use Streamlit Markdown instead of placing
-                # the answer inside an HTML div.
-                #
-                # This preserves:
-                #
-                # - Markdown
-                # - headings
-                # - citations
-                # - bold text
-                # - paragraphs
-                # - lists
 
                 st.markdown(
                     '<div class="answer-box">',
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
-
-                st.markdown(
-                    answer
-                )
-
+                st.markdown(answer)
                 st.markdown(
                     '</div>',
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
+                # ====================================================
+                # MODEL / QUERY INFORMATION
+                # ====================================================
 
-                # ============================================
-                # MODEL
-                # ============================================
-
-                model = result.get(
-                    "model"
-                )
-
+                model = result.get("model")
+                search_query = result.get("search_query")
+                rewrite_count = result.get("rewrite_count", 0)
 
                 st.markdown(
                     f"""
                     <div class="model-info">
-
-                    🤖 <b>Model used:</b>
-                    {html.escape(
-                        str(model)
-                        if model
-                        else "Default model"
-                    )}
-
+                        🤖 <b>Model used:</b>
+                        {html.escape(str(model) if model else "Default model")}
                     </div>
                     """,
-                    unsafe_allow_html=True
+                    unsafe_allow_html=True,
                 )
 
-                # ============================================
+                info_col1, info_col2 = st.columns(2)
+                with info_col1:
+                    st.metric(
+                        "🔄 Query Rewrites",
+                        str(rewrite_count),
+                    )
+                with info_col2:
+                    if search_query and search_query.strip() != query.strip():
+                        st.markdown("**🔎 Final Search Query:**")
+                        st.code(search_query, language="text")
+                    else:
+                        st.caption("Original query used for retrieval.")
+
+                # ====================================================
                 # TOKEN USAGE
-                # ============================================
+                # ====================================================
 
                 if show_token_usage:
+                    st.markdown("### 📊 Token Usage")
+                    display_usage(result.get("usage", {}))
 
-                    usage = result.get(
-                        "usage",
-                        {}
-                    )
-
-                    if usage:
-                        st.markdown(
-                            "### 📊 Token Usage"
-                        )
-
-
-                        prompt_tokens = usage.get(
-                            "prompt_tokens",
-                            0
-                        )
-
-
-                        completion_tokens = usage.get(
-                            "completion_tokens",
-                            0
-                        )
-
-
-                        total_tokens = usage.get(
-                            "total_tokens",
-                            0
-                        )
-
-
-                        cost = usage.get(
-                            "cost",
-                            0
-                        )
-
-
-                        reasoning_tokens = usage.get(
-                            "reasoning_tokens",
-                            0
-                        )
-
-
-                        cached_tokens = usage.get(
-                            "cached_tokens",
-                            0
-                        )
-
-
-                        # ============================================
-                        # MAIN METRICS
-                        # ============================================
-
-                        col1, col2, col3, col4 = st.columns(4)
-
-
-                        with col1:
-
-                            st.metric(
-
-                                "📥 Input Tokens",
-
-                                f"{prompt_tokens:,}"
-                            )
-
-
-                        with col2:
-
-                            st.metric(
-
-                                "📤 Output Tokens",
-
-                                f"{completion_tokens:,}"
-                            )
-
-
-                        with col3:
-
-                            st.metric(
-
-                                "🔢 Total Tokens",
-
-                                f"{total_tokens:,}"
-                            )
-
-
-                        with col4:
-
-                            st.metric(
-
-                                "💰 Cost",
-
-                                f"${cost:.6f}"
-                            )
-
-
-                        # ============================================
-                        # ADVANCED DETAILS
-                        # ============================================
-
-                        with st.expander(
-                            "🔍 Detailed Usage Information",
-                            expanded=False
-                        ):
-
-                            detail_col1, detail_col2 = st.columns(2)
-
-
-                            with detail_col1:
-
-                                st.metric(
-
-                                    "🧠 Reasoning Tokens",
-
-                                    f"{reasoning_tokens:,}"
-                                )
-
-
-                            with detail_col2:
-
-                                st.metric(
-
-                                    "⚡ Cached Tokens",
-
-                                    f"{cached_tokens:,}"
-                                )
-                # ============================================
+                # ====================================================
                 # RANKED SOURCES
-                # ============================================
+                # ====================================================
 
-                retrieval_data = result.get(
-                    "retrieval",
-                    []
-                )
-                
+                retrieval_data = result.get("retrieval", [])
+
                 if retrieval_data:
-                    st.markdown(
-                        "## 📚 Retrieved Sources"
-                    )
+                    st.markdown("## 📚 Retrieved Sources")
 
-                    for i, item in enumerate(
-                        retrieval_data,
-                        start=1
-                    ):
-
-                        st.write(
-                            f"""
-                            **{i}. {item.get("source", "Unknown")}**
-
-                            Vector Rank:
-                            {item.get("vector_rank")}
-
-                            Vector Score:
-                            {item.get("vector_score")}
-
-                            Reranker Score:
-                            {item.get("reranker_score")}
-
-                            Page:
-                            {item.get("page_number")}
-
-                            Chunk:
-                            {item.get("chunk_id")}
-                            """
+                    if not show_sources:
+                        # Compact summary when full source cards are disabled.
+                        st.caption(
+                            f"{len(retrieval_data)} final source(s) selected by the retriever."
                         )
 
+                    if show_sources:
+                        st.caption(
+                            "Sources below are the final candidates selected after "
+                            "vector retrieval and OpenRouter reranking."
+                        )
+                        display_ranked_sources(
+                            retrieval_data,
+                            show_scores=show_scores,
+                        )
 
-                if (
-                    show_sources
-                    and retrieval_data
-                ):
+                else:
+                    st.info("No retrieval information was returned.")
 
-                    st.divider()
-
-                    st.subheader(
-                        "📚 Ranked Sources"
-                    )
-
-                    st.caption(
-                        "Sources shown below are the final "
-                        "chunks selected after Cross-Encoder "
-                        "reranking."
-                    )
-
-
-                    display_ranked_sources(
-                        retrieval_data
-                    )
-
-
-                # ============================================
+                # ====================================================
                 # DOCUMENT METADATA
-                # ============================================
+                # ====================================================
 
-                documents = result.get(
-                    "documents",
-                    []
-                )
+                documents = result.get("documents", [])
 
-
-                if (
-                    show_sources
-                    and documents
-                ):
-
+                if show_sources and show_metadata and documents:
+                    st.divider()
                     with st.expander(
                         "🔖 Detailed Source Metadata",
-                        expanded=False
+                        expanded=False,
                     ):
+                        display_document_metadata(documents)
 
-                        display_document_metadata(
-                            documents
-                        )
-
-
-                # ============================================
+                # ====================================================
                 # RAW CONTEXT
-                # ============================================
+                # ====================================================
 
                 if show_raw_context:
-
-                    context = result.get(
-                        "context"
-                    )
-
-
+                    context = result.get("context")
+                    st.divider()
                     with st.expander(
                         "🔍 Raw Context Sent to LLM",
-                        expanded=False
+                        expanded=False,
                     ):
+                        display_context(context)
 
-                        display_context(
-                            context
-                        )
+                # ====================================================
+                # ERRORS / LOGS
+                # ====================================================
 
-
-                # ============================================
-                # DEBUG / ERRORS
-                # ============================================
-
-                errors = result.get(
-                    "errors",
-                    []
-                )
-
+                errors = result.get("errors", [])
 
                 if errors:
-
                     with st.expander(
                         "⚠️ Model / Retrieval Logs",
-                        expanded=False
+                        expanded=False,
                     ):
-
                         for error in errors:
-
-                            st.warning(
-                                str(error)
-                            )
-
+                            st.warning(str(error))
 
                 st.divider()
-
-                st.success(
-                    "✅ Query completed successfully!"
-                )
-
+                st.success("✅ Query completed successfully!")
 
             except Exception as e:
-
-                st.error(
-                    f"❌ Error processing query: "
-                    f"{str(e)}"
-                )
-
-
-                with st.expander(
-                    "🔍 Debug information",
-                    expanded=False
-                ):
-
+                st.error(f"❌ Error processing query: {e}")
+                with st.expander("🔍 Debug information", expanded=False):
                     st.exception(e)
 
 
@@ -1468,54 +698,22 @@ if (
 # EXAMPLE QUESTIONS
 # ============================================================
 
-else:
+if not search_button and not query:
+    st.info("💡 Enter a question above and press Search to get started.")
 
-    if not query:
+    col1, col2, col3 = st.columns(3)
 
-        st.info(
-            "💡 Enter a question above and press "
-            "Search to get started."
-        )
+    with col1:
+        st.markdown("**📖 Iconography**")
+        st.markdown("Who is Herambha?")
 
+    with col2:
+        st.markdown("**🪔 Ritual**")
+        st.markdown("Why is coconut offered to Ganesha?")
 
-        col1, col2, col3 = st.columns(
-            3
-        )
-
-
-        with col1:
-
-            st.markdown(
-                "**📖 Factual**"
-            )
-
-            st.markdown(
-                "What is Ganesh Hridayam?"
-            )
-
-
-        with col2:
-
-            st.markdown(
-                "**🧠 Conceptual**"
-            )
-
-            st.markdown(
-                "What is the significance of "
-                "Ganesha's elephant head?"
-            )
-
-
-        with col3:
-
-            st.markdown(
-                "**📚 Cross-scriptural**"
-            )
-
-            st.markdown(
-                "How is Ganesha described "
-                "across the Puranas?"
-            )
+    with col3:
+        st.markdown("**📚 Comparative**")
+        st.markdown("How is Herambha described across different sources?")
 
 
 # ============================================================
@@ -1523,26 +721,20 @@ else:
 # ============================================================
 
 st.divider()
-
 st.caption(
     "🕉️ Ganesh Tattvagyan RAG • "
-    "Vector Retrieval + Cross-Encoder Reranking"
+    "6-Collection Vector Retrieval + OpenRouter Reranking + Agentic RAG"
 )
 
 
 # ============================================================
-# RESET CACHE
+# RESET STREAMLIT CACHE
 # ============================================================
 
 if st.button(
-    "🔄 Reset Cache",
-    help="Reload embedding model, Astra DB connection and reranker."
+    "🔄 Reset Streamlit Cache",
+    help="Clear Streamlit's cached resources and rerun the application.",
 ):
-
     st.cache_resource.clear()
-
-    st.success(
-        "Cache cleared successfully!"
-    )
-
+    st.success("Streamlit cache cleared. Reloading...")
     st.rerun()
