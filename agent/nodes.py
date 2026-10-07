@@ -111,7 +111,7 @@ def call_openrouter(
     prompt,
     models=None,
     temperature=0.2,
-    max_tokens=800,
+    max_tokens=1000,
     reasoning_effort="none",
     timeout=60,
 ):
@@ -259,7 +259,7 @@ def _grade_one(question, document):
     return call_openrouter(
         prompt,
         temperature=0,
-        max_tokens=10,
+        max_tokens=15,
         timeout=GRADE_TIMEOUT,
     )
 
@@ -324,7 +324,7 @@ def rewrite_question(state):
         result = call_openrouter(
             REWRITE_PROMPT.format(question=question),
             temperature=0,
-            max_tokens=100,
+            max_tokens=150,
             timeout=REWRITE_TIMEOUT,
         )
         rewritten = result.get("answer", state.get("search_query", question))
@@ -428,7 +428,7 @@ def generate_answer(state):
             "usage": current_usage,
         }
 
-    max_tokens = 2000 if wants_detailed_answer(question) else 600
+    max_tokens = 2500 if wants_detailed_answer(question) else 1000
 
     prompt = ANSWER_PROMPT.format(question=question, context=context)
 

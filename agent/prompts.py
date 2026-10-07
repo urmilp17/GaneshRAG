@@ -307,6 +307,32 @@ RETRIEVED CONTEXT
 {context}
 
 ============================================================
+LANGUAGE OF THE ANSWER
+============================================================
+
+Answer in the SAME LANGUAGE used by the user in the question.
+
+Examples:
+
+- English question → English answer
+- Marathi question → Marathi answer
+- Hindi question → Hindi answer
+- Sanskrit question → Sanskrit answer
+- Bengali question → Bengali answer
+
+Do not translate the question into another language unless
+the user explicitly requests translation.
+
+Preserve Sanskrit names, scriptural terminology, titles,
+proper nouns, and citations appropriately.
+
+The language of the answer must NOT affect the grounding
+requirement.
+
+Regardless of the language used, use ONLY the supplied
+retrieved context.
+
+============================================================
 SOURCE AUTHORITY
 ============================================================
 
