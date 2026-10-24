@@ -4,6 +4,8 @@ import html
 import streamlit as st
 import streamlit.components.v1 as components
 import dotenv
+import logging
+logging.basicConfig(level=logging.INFO)
 
 # The Agentic RAG graph owns the retriever.  The retriever searches:
 # puranas, research, iconography, rahasya, sahastranaam and upanishad(s).
