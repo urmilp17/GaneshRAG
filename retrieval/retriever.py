@@ -49,6 +49,9 @@ CHUNK_NO = re.compile(r"chunk[_-]?(\d+)", re.I)
 
 CHAPTER_MODES = ("off", "auto", "always")
 
+# Shown in the logs so you can verify which version of this file is actually running.
+RETRIEVER_BUILD = "chapters-v2 (multi-chapter + overlap-trim)"
+
 
 class GaneshRetriever:
     """
@@ -134,6 +137,8 @@ class GaneshRetriever:
         # ---------------- cache ----------------
         self._cache = OrderedDict()
         self._cache_size = cache_size
+
+        log.info("GaneshRetriever ready - build: %s", RETRIEVER_BUILD)
 
     # =========================================================
     # LIFECYCLE
@@ -538,7 +543,7 @@ class GaneshRetriever:
         t_expand = time.perf_counter()
 
         log.info(
-            "retrieve: embed=%dms search=%dms rerank=%dms (%d docs, %s) expand=%dms [%s, mode=%s] total=%dms hits=%s",
+            "retrieve[chapters-v2]: embed=%dms search=%dms rerank=%dms (%d docs, %s) expand=%dms [%s, mode=%s] total=%dms hits=%s",
             (t_embed - t0) * 1000,
             (t_search - t_embed) * 1000,
             (t_rerank - t_search) * 1000,
