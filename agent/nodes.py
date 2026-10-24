@@ -211,7 +211,7 @@ def generate_query(state):
 
 _CANDIDATE_FIELDS = (
     "collection", "vector_rank", "vector_score", "reranker_score",
-    "expanded", "chunks_merged", "truncated",
+    "expanded", "windowed", "chunks_merged", "truncated",
 )
 _METADATA_FIELDS = (
     "source",
