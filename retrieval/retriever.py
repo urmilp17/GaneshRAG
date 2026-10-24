@@ -83,6 +83,8 @@ class GaneshRetriever:
         cache_size=128,
         expand_max_chunks=int(os.getenv("EXPAND_MAX_CHUNKS", "80")),
         expand_max_chars=int(os.getenv("EXPAND_MAX_CHARS", "24000")),
+        expand_max_chapters=int(os.getenv("EXPAND_MAX_CHAPTERS", "2")),
+        expand_total_chars=int(os.getenv("EXPAND_TOTAL_CHARS", "40000")),
     ):
         self.retrieve_k = retrieve_k
         self.top_k = top_k
@@ -92,6 +94,8 @@ class GaneshRetriever:
         self.rerank_models = rerank_models or DEFAULT_RERANK_MODELS
         self.expand_max_chunks = expand_max_chunks
         self.expand_max_chars = expand_max_chars
+        self.expand_max_chapters = expand_max_chapters
+        self.expand_total_chars = expand_total_chars
         self.expand_collections = EXPAND_COLLECTIONS
 
         # ---------------- embedding model (ONNX) ----------------
@@ -304,28 +308,58 @@ class GaneshRetriever:
             return None
         return (candidate["collection"], tuple(sorted((k, str(v)) for k, v in flt.items())))
 
-    def _pick_expansion_target(self, mode, final_candidates, query):
+    @staticmethod
+    def _trim_overlap(prev, nxt, min_overlap=25, max_overlap=600):
+        """
+        Chunks are stored with overlap, so the start of a chunk often repeats the end of the
+        previous one. Drop that repeated head so merged chapters don't carry duplicated text.
+        """
+        limit = min(len(prev), len(nxt), max_overlap)
+        for k in range(limit, min_overlap - 1, -1):
+            if prev.endswith(nxt[:k]):
+                return nxt[k:].lstrip()
+        return nxt
+
+    def _pick_expansion_targets(self, mode, final_candidates, query):
+        """Which hits should be swapped for their whole chapter (at most expand_max_chapters)."""
         if mode == "off" or not final_candidates:
-            return None
+            return []
+
+        def expandable(c):
+            return c["collection"] in self.expand_collections
 
         if mode == "always":
-            # best-ranked hit that lives in a chaptered collection
-            return next(
-                (c for c in final_candidates if c["collection"] in self.expand_collections),
-                None,
-            )
+            pool = [c for c in final_candidates if expandable(c)]
+        else:
+            # auto: the overall top hit must be in a chaptered collection AND show a clear signal
+            top = final_candidates[0]
+            if not expandable(top):
+                return []
 
-        # auto: only the overall top hit, and only with a clear signal
-        top = final_candidates[0]
-        if top["collection"] not in self.expand_collections:
-            return None
+            idx = self._chunk_index(top["document"])
+            is_opening = (idx == 0) or bool(CHAPTER_OPENING.match(top["text"]))
+            wants_narrative = bool(NARRATIVE_INTENT.search(query))
+            if not (is_opening or wants_narrative):
+                return []
 
-        idx = self._chunk_index(top["document"])
-        is_opening = (idx == 0) or bool(CHAPTER_OPENING.match(top["text"]))
-        wants_narrative = bool(NARRATIVE_INTENT.search(query))
-        return top if (is_opening or wants_narrative) else None
+            # A story can run across chapters (e.g. Janaka is deceived in ch. 29 and the
+            # aftermath is in ch. 30), so narrative questions also consider the next best hits.
+            pool = [top]
+            if wants_narrative:
+                pool += [c for c in final_candidates[1:3] if expandable(c)]
 
-    def _expand_chapter(self, target, vector, query):
+        targets, seen = [], set()
+        for c in pool:
+            key = self._chapter_key(c)
+            if key is None or key in seen:
+                continue
+            seen.add(key)
+            targets.append(c)
+            if len(targets) >= max(1, self.expand_max_chapters):
+                break
+        return targets
+
+    def _expand_chapter(self, target, vector, query, max_chars=None):
         """Load every chunk of the target's chapter and merge them in reading order."""
         flt = self._chapter_filter(target["metadata"])
         if not flt:
@@ -356,13 +390,16 @@ class GaneshRetriever:
 
         docs.sort(key=sort_key)
 
+        cap = max_chars or self.expand_max_chars
         parts, seen_text, total, truncated = [], set(), 0, False
         for d in docs:
             text = d.page_content.strip()
-            if text in seen_text:
+            if parts:
+                text = self._trim_overlap(parts[-1], text)  # remove chunk-overlap duplicates
+            if not text or text in seen_text:
                 continue
             seen_text.add(text)
-            if total + len(text) > self.expand_max_chars:
+            if total + len(text) > cap:
                 truncated = True
                 break
             parts.append(text)
@@ -462,19 +499,42 @@ class GaneshRetriever:
             model_used = "vector-fallback"
         t_rerank = time.perf_counter()
 
-        # 4. chapter expansion: swap the best hit for its whole chapter
+        # 4. chapter expansion: swap the best hit(s) for their whole chapter (in parallel)
         expanded_info = "no"
-        target = self._pick_expansion_target(mode, final_candidates, key)
-        if target is not None:
-            expanded = self._expand_chapter(target, vector, key)
-            if expanded is not None:
-                chapter = self._chapter_key(target)
-                final_candidates = [
-                    expanded if c is target else c
-                    for c in final_candidates
-                    if c is target or self._chapter_key(c) != chapter
-                ]
-                expanded_info = f"{expanded['chunks_merged']} chunks"
+        targets = self._pick_expansion_targets(mode, final_candidates, key)
+        if targets:
+            per_chapter_cap = max(
+                4000, min(self.expand_max_chars, self.expand_total_chars // len(targets))
+            )
+            futures_exp = [
+                (t, self._pool.submit(self._expand_chapter, t, vector, key, per_chapter_cap))
+                for t in targets
+            ]
+
+            replaced = {}
+            for t, fut in futures_exp:
+                try:
+                    result = fut.result(timeout=15)
+                except Exception as e:
+                    log.warning("Chapter expansion error: %s", e)
+                    result = None
+                if result is not None:
+                    replaced[id(t)] = result
+
+            if replaced:
+                taken = {self._chapter_key(t) for t in targets if id(t) in replaced}
+                merged_list = []
+                for c in final_candidates:
+                    if id(c) in replaced:
+                        merged_list.append(replaced[id(c)])
+                    elif self._chapter_key(c) in taken:
+                        continue  # loose chunk of a chapter we just loaded in full
+                    else:
+                        merged_list.append(c)
+                final_candidates = merged_list
+                expanded_info = " + ".join(
+                    f"{e['chunks_merged']} chunks" for e in replaced.values()
+                )
         t_expand = time.perf_counter()
 
         log.info(

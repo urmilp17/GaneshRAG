@@ -438,7 +438,7 @@ def generate_answer(state):
 
     # A full chapter was loaded: allow room to actually narrate it.
     if any((d.metadata or {}).get("expanded") for d in state.get("documents", [])):
-        max_tokens = max(max_tokens, 1500)
+        max_tokens = max(max_tokens, 2000)
 
     prompt = ANSWER_PROMPT.format(question=question, context=context)
 
