@@ -859,6 +859,8 @@ with st.expander("Reading preferences", expanded=False):
     with pref_col2:
         show_raw_context = st.checkbox("Show raw context", value=False, key="opt_context")
         show_token_usage = st.checkbox("Show token usage and cost", value=True, key="opt_usage")
+    st.radio("Chapter context", ["Auto", "Always", "Off"], horizontal=True, key="opt_chapter",
+        help="Auto loads the full chapter when the best match is a chapter opening or the question asks for a story.")
 
 
 # ============================================================
@@ -873,6 +875,7 @@ def run_query(question):
                 {
                     "question": question,
                     "rewrite_count": 0,
+                    "chapter_mode": st.session_state.get("opt_chapter", "Auto").lower()
                 }
             )
             st.session_state["last"] = {"query": question, "result": result, "error": None}

@@ -111,7 +111,7 @@ def call_openrouter(
     prompt,
     models=None,
     temperature=0.2,
-    max_tokens=1000,
+    max_tokens=800,
     reasoning_effort="none",
     timeout=60,
 ):
@@ -209,7 +209,10 @@ def generate_query(state):
 # NODE 2 - RETRIEVE DOCUMENTS
 # ============================================================
 
-_CANDIDATE_FIELDS = ("collection", "vector_rank", "vector_score", "reranker_score")
+_CANDIDATE_FIELDS = (
+    "collection", "vector_rank", "vector_score", "reranker_score",
+    "expanded", "chunks_merged", "truncated",
+)
 _METADATA_FIELDS = (
     "source",
     "source_type",
@@ -225,7 +228,10 @@ _METADATA_FIELDS = (
 
 
 def retrieve_documents(state):
-    candidates = retriever.retrieve(state["search_query"])
+    candidates = retriever.retrieve(
+        state["search_query"],
+        chapter_mode=state.get("chapter_mode", "auto"),
+    )
 
     documents, retrieval_info = [], []
 
@@ -259,7 +265,7 @@ def _grade_one(question, document):
     return call_openrouter(
         prompt,
         temperature=0,
-        max_tokens=15,
+        max_tokens=10,
         timeout=GRADE_TIMEOUT,
     )
 
@@ -324,7 +330,7 @@ def rewrite_question(state):
         result = call_openrouter(
             REWRITE_PROMPT.format(question=question),
             temperature=0,
-            max_tokens=150,
+            max_tokens=100,
             timeout=REWRITE_TIMEOUT,
         )
         rewritten = result.get("answer", state.get("search_query", question))
@@ -428,7 +434,11 @@ def generate_answer(state):
             "usage": current_usage,
         }
 
-    max_tokens = 2500 if wants_detailed_answer(question) else 1000
+    max_tokens = 2000 if wants_detailed_answer(question) else 600
+
+    # A full chapter was loaded: allow room to actually narrate it.
+    if any((d.metadata or {}).get("expanded") for d in state.get("documents", [])):
+        max_tokens = max(max_tokens, 1500)
 
     prompt = ANSWER_PROMPT.format(question=question, context=context)
 

@@ -35,3 +35,6 @@ class AgentState(TypedDict, total=False):
     
     #Usage
     usage: dict
+    
+    #ChapterMode
+    chapter_mode: str
