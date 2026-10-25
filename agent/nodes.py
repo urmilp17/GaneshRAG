@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -228,10 +229,13 @@ _METADATA_FIELDS = (
 
 
 def retrieve_documents(state):
+    t0 = time.perf_counter()
     candidates = retriever.retrieve(
         state["search_query"],
         chapter_mode=state.get("chapter_mode", "auto"),
     )
+    # wall-clock time of this retrieval pass; summed over rewrite passes
+    retrieval_ms = state.get("retrieval_ms", 0.0) + (time.perf_counter() - t0) * 1000
 
     documents, retrieval_info = [], []
 
@@ -243,7 +247,11 @@ def retrieve_documents(state):
         info.update({k: metadata.get(k) for k in _METADATA_FIELDS})
         retrieval_info.append(info)
 
-    return {"documents": documents, "retrieval": retrieval_info}
+    return {
+        "documents": documents,
+        "retrieval": retrieval_info,
+        "retrieval_ms": retrieval_ms,
+    }
 
 
 # ============================================================

@@ -38,3 +38,6 @@ class AgentState(TypedDict, total=False):
     
     #ChapterMode
     chapter_mode: str
+    
+    #RetrivalTime
+    retrieval_ms: float

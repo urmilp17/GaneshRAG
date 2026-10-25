@@ -1,11 +1,11 @@
 import os
+import time
+import uuid
 import json
 import html
 import streamlit as st
 import streamlit.components.v1 as components
 import dotenv
-import logging
-logging.basicConfig(level=logging.INFO)
 
 # The Agentic RAG graph owns the retriever.  The retriever searches:
 # puranas, research, iconography, rahasya, sahastranaam and upanishad(s).
@@ -20,6 +20,13 @@ except Exception as e:
     initialized = False
     initialization_error = str(e)
 
+# Saves every question/answer (with retrieval time) to Astra DB in a background thread.
+try:
+    from response_store import build_record, save_response_async, warm_up_async
+    response_logging = True
+except Exception:
+    response_logging = False
+
 
 # ============================================================
 # CONSTANTS
@@ -27,6 +34,9 @@ except Exception as e:
 
 USD_TO_INR = 95                                   # $1 = ₹95
 SHARE_LINK = "https://ganeshrag.streamlit.app/"
+
+# label shown in the UI -> value understood by the retriever
+CHAPTER_MODES = {"Auto": "auto", "Always": "always", "Off": "off"}
 
 EXAMPLES = [
     ("Iconography", "Who is Herambha?"),
@@ -559,6 +569,14 @@ def kv_row(label, value, code=False):
     return f'<div class="kv"><span class="k">{label}</span><span class="v">{text}</span></div>'
 
 
+def format_seconds(ms):
+    """1234.5 ms -> '1.2 s' (None-safe)."""
+    try:
+        return f"{float(ms) / 1000:.1f} s"
+    except (TypeError, ValueError):
+        return None
+
+
 def build_copy_text(question, answer):
     return (
         f"Question: {question.strip()}\n\n"
@@ -812,6 +830,9 @@ st.markdown(
 )
 ornament()
 
+if response_logging:
+    warm_up_async()
+
 if not initialized:
     st.error(
         "The Agentic RAG graph could not be initialised. "
@@ -861,8 +882,18 @@ with st.expander("Reading preferences", expanded=False):
     with pref_col2:
         show_raw_context = st.checkbox("Show raw context", value=False, key="opt_context")
         show_token_usage = st.checkbox("Show token usage and cost", value=True, key="opt_usage")
-    st.radio("Chapter context", ["Auto", "Always", "Off"], horizontal=True, key="opt_chapter",
-        help="Auto loads the full chapter when the best match is a chapter opening or the question asks for a story.")
+
+    st.radio(
+        "Chapter context",
+        list(CHAPTER_MODES),
+        horizontal=True,
+        key="opt_chapter",
+        help=(
+            "Auto loads the full chapter (or the neighbouring passages) when the best match "
+            "needs it. Always loads the full chapter of the best match. Off uses only the "
+            "retrieved passages."
+        ),
+    )
 
 
 # ============================================================
@@ -871,16 +902,44 @@ with st.expander("Reading preferences", expanded=False):
 # ============================================================
 
 def run_query(question):
+    chapter_mode = CHAPTER_MODES.get(st.session_state.get("opt_chapter", "Auto"), "auto")
+    st.session_state.setdefault("session_id", uuid.uuid4().hex)
+
     with st.spinner("Consulting the scriptures — retrieving, reranking, grading…"):
         try:
+            started = time.perf_counter()
             result = graph.invoke(
                 {
                     "question": question,
                     "rewrite_count": 0,
-                    "chapter_mode": st.session_state.get("opt_chapter", "Auto").lower()
+                    "chapter_mode": chapter_mode,
                 }
             )
-            st.session_state["last"] = {"query": question, "result": result, "error": None}
+            total_ms = (time.perf_counter() - started) * 1000
+
+            st.session_state["last"] = {
+                "query": question,
+                "result": result,
+                "total_ms": total_ms,
+                "error": None,
+            }
+
+            # Fire-and-forget: never blocks the page and never raises.
+            if response_logging:
+                try:
+                    save_response_async(
+                        build_record(
+                            question,
+                            result,
+                            total_ms=total_ms,
+                            chapter_mode=chapter_mode,
+                            session_id=st.session_state["session_id"],
+                            usd_to_inr=USD_TO_INR,
+                        )
+                    )
+                except Exception:
+                    pass
+
         except Exception as e:
             st.session_state["last"] = {"query": question, "result": None, "error": e}
 
@@ -903,7 +962,7 @@ if search_button or run_pending:
 # RENDER RESULT
 # ============================================================
 
-def render_result(question, result):
+def render_result(question, result, total_ms=None):
     ornament()
 
     # ---------------- Question ----------------
@@ -935,10 +994,19 @@ def render_result(question, result):
     search_query = result.get("search_query")
     rewrite_count = result.get("rewrite_count", 0)
 
+    timing_bits = ""
+    retrieval_time = format_seconds(result.get("retrieval_ms"))
+    total_time = format_seconds(total_ms)
+    if retrieval_time:
+        timing_bits += f" &nbsp;·&nbsp; retrieval: <b>{retrieval_time}</b>"
+    if total_time:
+        timing_bits += f" &nbsp;·&nbsp; total: <b>{total_time}</b>"
+
     st.markdown(
         '<div class="colophon">Composed by '
         f'<b>{html.escape(str(model) if model else "the default model")}</b>'
-        f" &nbsp;·&nbsp; query rewrites: <b>{html.escape(str(rewrite_count))}</b></div>",
+        f" &nbsp;·&nbsp; query rewrites: <b>{html.escape(str(rewrite_count))}</b>"
+        f"{timing_bits}</div>",
         unsafe_allow_html=True,
     )
 
@@ -994,7 +1062,7 @@ if last and last.get("error") is not None:
         st.exception(last["error"])
 
 elif last and last.get("result") is not None:
-    render_result(last["query"], last["result"])
+    render_result(last["query"], last["result"], last.get("total_ms"))
 
 else:
     # ------------------------------------------------------------
@@ -1082,16 +1150,8 @@ st.caption(
     "Ganesh Tattvagyan · six-collection vector retrieval, "
     "OpenRouter reranking and agentic grading"
 )
-
-
-# ============================================================
-# RESET STREAMLIT CACHE
-# ============================================================
-
-if st.button(
-    "🔄 Reset Streamlit Cache",
-    help="Clear Streamlit's cached resources and rerun the application.",
-):
-    st.cache_resource.clear()
-    st.success("Streamlit cache cleared. Reloading...")
-    st.rerun()
+if response_logging:
+    st.caption(
+        "Questions and answers are saved anonymously to help improve this service. "
+        "Please avoid entering personal information."
+    )
